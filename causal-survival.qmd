@@ -27,11 +27,11 @@ In this notebook, we demonstrate various flavors of non-, semi- and parametric s
 
 Specifically, we'll cover:
 
--   G-computation with logistic polynomial regression [DONE]
--   G-computation with Cox proportional hazards model [DONE - needs bootstrapping]
--   Inverse probability of treatment weighting in logistic regression [DONE]
--   Inverse probability of treatment weighting in Cox regression
--   Inverse probability of treatment weighting in Kaplan-Meier
+-   G-computation with logistic polynomial regression **[DONE]**
+-   G-computation with Cox proportional hazards model **[DONE - needs bootstrapping]**
+-   Inverse probability of treatment weighting in logistic regression **[DONE]**
+-   Inverse probability of treatment weighting in Cox proportional hazards model **[DONE - needs bootstrapping]**
+-   Inverse probability of treatment weighting in Kaplan-Meier **[DONE]**
 -   Sub-group analysis with g-computation
 
 The dataset is `nhefs` containing data from the National Health and Nutrition Examination Survey Data I Epidemiologic Follow-up Study.
@@ -365,7 +365,11 @@ boot_samples <- with(
 
 ## Cox regression
 
-NB: This gives a slightly different result from the other approaches -- namely, that there's no notable difference between `qsmk = 1` and `qsmk = 0` when balancing the groups with IP weights. I've tried to debug the code but without success. We can check that the post-processing code is working as intended by deleting the `weights` argument from the Cox model; then, we see a clear difference between the two groups.
+NB: This gives a slightly different result from the other approaches -- namely, that there's no notable difference between `qsmk = 1` and `qsmk = 0` when balancing the groups with IP weights. 
+
+I've tried to debug the code but without success. We can check that the post-processing code is working as intended by deleting the `weights` argument from the Cox model; then, we see a clear difference between the two groups.
+
+This could indicate that, when the hazard is constrained to be proportional, we find little evidence of a difference between the two groups. This would be sort of consistent with the IP weighted Kaplan-Meier below.
 
 ```{r iptw-cox}
 nhefs$event <- nhefs$death
@@ -423,3 +427,40 @@ iptw_surv <- data.frame(time = iptw_fit_qsmk0$time,
 
 ```
 
+# Kaplan-Meier
+
+## Unadjusted
+
+```{r unadj-kaplan-meier, fig.width=8, fig.asp=0.618}
+# we re-use weights from earlier
+npfit <- survfit(Surv(survtime, death) ~ qsmk, data=nhefs)
+
+# create plot
+npplot <- ggsurvplot(npfit, data = nhefs, xlab="Months of follow-up",
+           ylab="Survival probability",
+           main="Product-Limit Survival Estimates", conf.int = TRUE) 
+
+# extract plot
+npplot$plot + scale_x_continuous(limits = c(0, 120), breaks=seq(0,120,12)) +
+           scale_y_continuous(limits=c(0.6, 1), breaks=seq(0.6, 1, 0.2))  + 
+           theme(legend.position="bottom") + 
+           ggtitle("Kaplan-Meier (unadjusted)")
+```
+
+## IP weighted
+
+```{r ip-kaplan-meier, fig.width=8, fig.asp=0.618}
+# we re-use weights from earlier
+npfit <- survfit(Surv(survtime, death) ~ qsmk, weights = d$sw.a, data=d)
+
+# create plot
+npplot <- ggsurvplot(npfit, data = nhefs, xlab="Months of follow-up",
+           ylab="Survival probability",
+           main="Product-Limit Survival Estimates", conf.int = TRUE) 
+
+# extract plot
+npplot$plot + scale_x_continuous(limits = c(0, 120), breaks=seq(0,120,12)) +
+           scale_y_continuous(limits=c(0.6, 1), breaks=seq(0.6, 1, 0.2))  + 
+           theme(legend.position="bottom") + 
+           ggtitle("Kaplan-Meier (IPTW)")
+```
