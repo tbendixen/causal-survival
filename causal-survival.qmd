@@ -27,13 +27,13 @@ In this notebook, we demonstrate various flavors of non-, semi- and parametric s
 
 Specifically, we'll cover:
 
--   G-computation with logistic polynomial regression **\[DONE\]**
--   G-computation with Cox proportional hazards model **\[DONE - needs bootstrapping\]**
--   Inverse probability of treatment weighting in logistic regression **\[DONE\]**
--   Inverse probability of treatment weighting in Cox proportional hazards model **\[DONE - needs bootstrapping\]**
--   Inverse probability of treatment weighting in Kaplan-Meier **\[DONE\]**
--   Sub-group analysis with g-computation and logistic polynomial regression **\[DONE - needs bootstrapping\]**
--   Sub-group analysis with IP weighted Kaplan-Meier **\[DONE\]**
+-   G-computation with logistic polynomial regression 
+-   G-computation with Cox proportional hazards model [NB: needs bootstrapping]
+-   Inverse probability of treatment weighting in logistic regression
+-   Inverse probability of treatment weighting in Cox proportional hazards model [NB: needs bootstrapping]
+-   Inverse probability of treatment weighting in Kaplan-Meier
+-   Sub-group analysis with g-computation and logistic polynomial regression [NB: needs bootstrapping]
+-   Sub-group analysis with IP weighted Kaplan-Meier
 
 The dataset is `nhefs` containing data from the National Health and Nutrition Examination Survey Data I Epidemiologic Follow-up Study.
 
