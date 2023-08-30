@@ -1,2 +1,2 @@
-# causal-survival
-Causal survival analysis in R
+# Causal survival analysis in R
+work in progress
