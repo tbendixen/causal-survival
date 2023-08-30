@@ -101,10 +101,29 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 
 </head>
 
-<body class="fullcontent">
+<body>
 
 <div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
-
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction"><span class="toc-section-number">1</span>  Introduction</a></li>
+  <li><a href="#set-up" id="toc-set-up" class="nav-link" data-scroll-target="#set-up"><span class="toc-section-number">2</span>  Set-up</a></li>
+  <li><a href="#data-wrangling-from-wide-to-long" id="toc-data-wrangling-from-wide-to-long" class="nav-link" data-scroll-target="#data-wrangling-from-wide-to-long"><span class="toc-section-number">3</span>  Data wrangling: From wide to long</a></li>
+  <li><a href="#g-computation" id="toc-g-computation" class="nav-link" data-scroll-target="#g-computation"><span class="toc-section-number">4</span>  G-computation</a>
+  <ul class="collapse">
+  <li><a href="#logistic-regression" id="toc-logistic-regression" class="nav-link" data-scroll-target="#logistic-regression"><span class="toc-section-number">4.1</span>  Logistic regression</a></li>
+  <li><a href="#cox-regression" id="toc-cox-regression" class="nav-link" data-scroll-target="#cox-regression"><span class="toc-section-number">4.2</span>  Cox regression</a></li>
+  </ul></li>
+  <li><a href="#inverse-probability-of-treatment-weighting" id="toc-inverse-probability-of-treatment-weighting" class="nav-link" data-scroll-target="#inverse-probability-of-treatment-weighting"><span class="toc-section-number">5</span>  Inverse probability of treatment weighting</a>
+  <ul class="collapse">
+  <li><a href="#logistic-regression-1" id="toc-logistic-regression-1" class="nav-link" data-scroll-target="#logistic-regression-1"><span class="toc-section-number">5.1</span>  Logistic regression</a></li>
+  </ul></li>
+  </ul>
+</nav>
+</div>
 <main class="content" id="quarto-document-content">
 
 <header id="title-block-header" class="quarto-title-block default">
@@ -130,8 +149,8 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 
 </header>
 
-<section id="introduction" class="level1">
-<h1>Introduction</h1>
+<section id="introduction" class="level1" data-number="1">
+<h1 data-number="1"><span class="header-section-number">1</span> Introduction</h1>
 <p>In this notebook, we demonstrate various flavors of non-, semi- and parametric survival analysis from a causal, potential outcomes approach in <code>R</code>. We mostly follow Hernan &amp; Robins (2020).</p>
 <p>Specifically, we’ll cover:</p>
 <ul>
@@ -144,8 +163,8 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </ul>
 <p>The dataset is <code>nhefs</code> containing data from the National Health and Nutrition Examination Survey Data I Epidemiologic Follow-up Study.</p>
 </section>
-<section id="set-up" class="level1">
-<h1>Set-up</h1>
+<section id="set-up" class="level1" data-number="2">
+<h1 data-number="2"><span class="header-section-number">2</span> Set-up</h1>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(readxl)</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
@@ -160,8 +179,8 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>nhefs <span class="ot">&lt;-</span> <span class="fu">read_excel</span>(<span class="st">"NHEFS.xls"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
-<section id="data-wrangling-from-wide-to-long" class="level1">
-<h1>Data wrangling: From wide to long</h1>
+<section id="data-wrangling-from-wide-to-long" class="level1" data-number="3">
+<h1 data-number="3"><span class="header-section-number">3</span> Data wrangling: From wide to long</h1>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 120 months, because the follow-up period was ten years (10yrs*12 months)</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co"># yrdth ranges from 83 to 92</span></span>
@@ -182,10 +201,10 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>n_R <span class="ot">&lt;-</span> <span class="dv">100</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
-<section id="g-computation" class="level1">
-<h1>G-computation</h1>
-<section id="logistic-regression" class="level2">
-<h2 class="anchored" data-anchor-id="logistic-regression">Logistic regression</h2>
+<section id="g-computation" class="level1" data-number="4">
+<h1 data-number="4"><span class="header-section-number">4</span> G-computation</h1>
+<section id="logistic-regression" class="level2" data-number="4.1">
+<h2 data-number="4.1" class="anchored" data-anchor-id="logistic-regression"><span class="header-section-number">4.1</span> Logistic regression</h2>
 <div class="cell" data-hash="causal-survival_cache/html/g-comp-logit_9560783be251c1f25d24da2ef19c997d">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>gcomp_logistic <span class="ot">&lt;-</span> <span class="cf">function</span>(formula, sample, data, indices) {</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  </span>
@@ -302,8 +321,8 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </div>
 </div>
 </section>
-<section id="cox-regression" class="level2">
-<h2 class="anchored" data-anchor-id="cox-regression">Cox regression</h2>
+<section id="cox-regression" class="level2" data-number="4.2">
+<h2 data-number="4.2" class="anchored" data-anchor-id="cox-regression"><span class="header-section-number">4.2</span> Cox regression</h2>
 <div class="cell" data-hash="causal-survival_cache/html/gcomp-cox_92a0dbc7d00d8899d01b9793ee4c96a1">
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># set event and id columns</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>nhefs<span class="sc">$</span>event <span class="ot">&lt;-</span> nhefs<span class="sc">$</span>death</span>
@@ -378,10 +397,10 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </div>
 </section>
 </section>
-<section id="inverse-probability-of-treatment-weighting" class="level1">
-<h1>Inverse probability of treatment weighting</h1>
-<section id="logistic-regression-1" class="level2">
-<h2 class="anchored" data-anchor-id="logistic-regression-1">Logistic regression</h2>
+<section id="inverse-probability-of-treatment-weighting" class="level1" data-number="5">
+<h1 data-number="5"><span class="header-section-number">5</span> Inverse probability of treatment weighting</h1>
+<section id="logistic-regression-1" class="level2" data-number="5.1">
+<h2 data-number="5.1" class="anchored" data-anchor-id="logistic-regression-1"><span class="header-section-number">5.1</span> Logistic regression</h2>
 <div class="cell" data-hash="causal-survival_cache/html/iptw-logit_d835c4da651652ba801888f83bb7fca1">
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># set event and id columns</span></span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>nhefs<span class="sc">$</span>event <span class="ot">&lt;-</span> nhefs<span class="sc">$</span>death</span>
