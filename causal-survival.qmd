@@ -1,8 +1,12 @@
 ---
 title: "Causal survival analysis in R"
 author: "Theiss Bendixen"
-format: html
-editor: visual
+format:
+  html:
+    number-sections: TRUE
+    toc: TRUE
+number-depth: 2
+editor: source
 ---
 
 ```{r setup, include=FALSE}
