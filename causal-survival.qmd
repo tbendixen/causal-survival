@@ -19,7 +19,7 @@ knitr::opts_chunk$set(echo = TRUE,
 
 # Introduction
 
-In this notebook, we demonstrate in various ways of running non-, semi- and parametric survival analysis from a causal, potential outcomes approach in `R`. We mostly follow Hernan & Robins (2020).
+In this notebook, we demonstrate various flavors of non-, semi- and parametric survival analysis from a causal, potential outcomes approach in `R`. We mostly follow Hernan & Robins (2020).
 
 Specifically, we'll cover:
 
