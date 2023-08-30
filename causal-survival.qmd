@@ -1,0 +1,360 @@
+---
+title: "Causal survival analysis in R"
+author: "Theiss Bendixen"
+format: html
+editor: visual
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      results='hide', 
+                      cache=TRUE, 
+                      warning = FALSE,
+                      message = FALSE,
+                      error = TRUE,
+                      cache.comments = FALSE,
+                      cache.lazy = FALSE)
+
+```
+
+# Introduction
+
+In this notebook, we demonstrate in various ways of running non-, semi- and parametric survival analysis from a causal, potential outcomes approach in `R`. We mostly follow Hernan & Robins (2020).
+
+Specifically, we'll cover:
+
+-   G-computation with logistic polynomial regression [DONE]
+-   G-computation with Cox proportional hazards model [DONE - needs bootstrapping]
+-   Inverse probability of treatment weighting in logistic regression [DONE]
+-   Inverse probability of treatment weighting in Cox regression
+-   Inverse probability of treatment weighting in Kaplan-Meier
+-   Sub-group analysis with g-computation
+
+The dataset is `nhefs` containing data from the National Health and Nutrition Examination Survey Data I Epidemiologic Follow-up Study.
+
+# Set-up
+
+```{r set-up, cache = FALSE}
+library(readxl)
+library(ggplot2)
+library(tidybayes)
+library(boot)
+library(dplyr)
+library(splitstackshape)
+library(survival)
+library(survminer)
+library(ggplot2)
+
+nhefs <- read_excel("NHEFS.xls")
+```
+
+# Data wrangling: From wide to long
+
+```{r dat-prep, cache=FALSE, dependson="set-up"}
+# 120 months, because the follow-up period was ten years (10yrs*12 months)
+# yrdth ranges from 83 to 92
+nhefs$survtime <- ifelse(nhefs$death==0, 120,
+                         (nhefs$yrdth-83)*12+nhefs$modth)
+
+
+nhefs.surv <- expandRows(nhefs, "survtime", drop=F) 
+nhefs.surv$time <- sequence(rle(nhefs.surv$seqn)$lengths)-1
+nhefs.surv$event <- ifelse(nhefs.surv$time==nhefs.surv$survtime-1 & 
+                             nhefs.surv$death==1, 1, 0)
+nhefs.surv$timesq <- nhefs.surv$time^2
+
+# set id column
+nhefs.surv$id <- nhefs.surv$seqn
+
+# set number of iterations to bootstrap
+n_R <- 100
+```
+
+# G-computation
+
+## Logistic regression
+
+```{r g-comp-logit, dependson="dat-prep"}
+gcomp_logistic <- function(formula, sample, data, indices) {
+  
+  # length of final follow-up in sample
+  tmax <- max(data$time, na.rm=T) + 1
+  
+  # bootstrap individuals
+  id <- unique(data$id)
+  random_id <- sample(id, length(id), replace = TRUE)
+  d <- data |>
+    filter(id %in% random_id)
+  
+  # covariate-adjusted logistic regression
+  mod <- glm(formula, family=binomial(), data=d)
+  
+  # creation of dataset with all time points for 
+  # each individual under each treatment level.
+  # predictions are obtained for the full sample,
+  # i.e. post-stratification to the sample of interest.
+  qsmk0 <- expandRows(sample, count=tmax, count.is.col=F) 
+  qsmk0$time <- rep(seq(0, tmax-1), nrow(sample))
+  qsmk0$timesq <- qsmk0$time^2
+  qsmk0$qsmk <- 0
+  
+  qsmk1 <- qsmk0
+  qsmk1$qsmk <- 1
+  
+  # predicted probabilities
+  qsmk0$p.noevent0 <- predict(mod, qsmk0, type="response")
+  qsmk1$p.noevent1 <- predict(mod, qsmk1, type="response")
+
+  # computation of survival for each person-month
+  qsmk0.surv <- qsmk0 |> group_by(seqn) |> mutate(surv0 = cumprod(p.noevent0))
+  qsmk1.surv <- qsmk1 |> group_by(seqn) |> mutate(surv1 = cumprod(p.noevent1))
+  
+  # marginalize
+  surv0 <-
+    aggregate(qsmk0.surv,
+              by = list(qsmk0.surv$time),
+              FUN = mean)[c("qsmk", "time", "surv0")]
+  surv1 <-
+    aggregate(qsmk1.surv,
+              by = list(qsmk1.surv$time),
+              FUN = mean)[c("qsmk", "time", "surv1")]
+  
+  return(c(surv0$surv0, surv1$surv1))
+}
+
+# g-comp bootstrap
+(bootstrapped_results <- boot(data=nhefs.surv,
+                              sample = nhefs,
+                              statistic=gcomp_logistic,
+                              R=n_R, 
+                              formula=event==0 ~ qsmk + I(qsmk*time) + I(qsmk*timesq)
+                              + time + timesq + sex + race + age + I(age*age)
+                              + as.factor(education) + smokeintensity 
+                              + I(smokeintensity*smokeintensity) + smkintensity82_71 
+                              + smokeyrs + I(smokeyrs*smokeyrs) + as.factor(exercise) 
+                              + as.factor(active) + wt71 + I(wt71*wt71)))
+
+# data wrangle for plotting
+tmin <- min(nhefs.surv$time, na.rm=T)
+tmax <- max(nhefs.surv$time, na.rm=T)
+
+# collect results in data frame
+boot_samples <- with(
+  bootstrapped_results,
+  data.frame(
+  time = rep(tmin:tmax, each=R),
+  surv0 = c(t[,(tmin+1):(tmax+1)]),
+  surv1 = c(t[,(tmax+2):(tmax*2+2)]),
+  draw = rep(1:R, each=tmax+1))
+  )
+
+```
+
+```{r g-comp-logit-plot, dependson="g-comp-log", fig.align = 'center', fig.width=8, fig.asp=0.618}
+# survival curves
+survival_plot <- ggplot(boot_samples, aes(x=time, y=surv)) + 
+  stat_lineribbon(aes(y = surv0, colour = "0"), fill = "grey", alpha = 0.5, .width=.95) +
+  stat_lineribbon(aes(y = surv1, colour = "1"), fill = "grey", alpha = 0.5, .width=.95) +
+  xlab("Months of follow-up") + 
+  scale_x_continuous(limits = c(0, 120), breaks=seq(0,120,12)) +
+  scale_y_continuous(limits=c(0.6, 1), breaks=seq(0.6, 1, 0.2)) +
+  ylab("Survival") + 
+  ggtitle("Logistic polynomial model (g-computation)") + 
+  labs(colour="A:") +
+  theme_classic() + 
+  theme(legend.position="bottom")
+
+# contrast survival curve
+boot_samples$survdiff <- with(boot_samples,
+                              surv1 - surv0)
+
+contrast_plot <- 
+  ggplot(boot_samples, aes(x=time, y=(survdiff)*100)) + 
+  stat_lineribbon(fill = "grey", alpha = 0.5, .width=.95) +
+  scale_x_continuous(limits = c(0, 120), breaks=seq(0,120,20)) +
+  xlab("Months of follow-up") + 
+  ylab("Difference in %") + 
+  ggtitle("Percentage difference\nin survival") + 
+  labs(colour="A:") +
+  theme_classic() + 
+  theme(legend.position="bottom")
+
+# Add the second plot as an annotation to the first plot
+survival_plot + annotation_custom(grob = ggplotGrob(contrast_plot), 
+                                           xmin = 0, xmax = 60, 
+                                           ymin = 0.6, ymax = 0.8)
+
+```
+
+## Cox regression
+
+```{r gcomp-cox}
+# set event and id columns
+nhefs$event <- nhefs$death
+nhefs$id <- nhefs$seqn
+
+# Cox model
+mod <- coxph(Surv(survtime, event) ~ qsmk + sex + race + age + age:age
+                              + as.factor(education) + smokeintensity 
+                              + smokeintensity:smokeintensity + smkintensity82_71 
+                              + smokeyrs + smokeyrs:smokeyrs + as.factor(exercise) 
+                              + as.factor(active) + wt71 + wt71:wt71, data = nhefs, robust=TRUE)
+
+# creation of datasets with all observed time points for 
+# each individual under each treatment level.
+qsmk0 <- transform(nhefs, qsmk = 0)
+qsmk1 <- transform(nhefs, qsmk = 1)
+
+# predicted time to event under each treatment
+fit_qsmk0 <- survfit(mod, newdata = qsmk0)
+surv0 <- fit_qsmk0$surv |> as.data.frame()
+surv0 <- surv0 |> tidyr::pivot_longer(cols = everything(), 
+                                      names_to = "id",
+                                      values_to = "surv")
+surv0$time <- rep(fit_qsmk0$time, each = length(unique(surv0$id)))
+surv0$qsmk <- 0
+
+fit_qsmk1 <- survfit(mod, newdata = qsmk1)
+surv1 <- fit_qsmk1$surv |> as.data.frame()
+surv1 <- surv1 |> tidyr::pivot_longer(cols = everything(), 
+                                      names_to = "id",
+                                      values_to = "surv")
+surv1$time <- rep(fit_qsmk1$time, each = length(unique(surv1$id)))
+surv1$qsmk <- 1
+
+# marginalize
+surv0 <- 
+  aggregate(surv ~ time + qsmk,
+            data = surv0,
+            FUN = mean)
+
+surv1 <- 
+  aggregate(surv ~ time + qsmk,
+            data = surv1,
+            FUN = mean)
+
+# collect in dataframe
+cox_surv <- data.frame(
+  time = surv0$time,
+  surv0 = surv0$surv,
+  surv1 = surv1$surv
+)
+
+```
+
+```{r gcomp-cox-plot, fig.align = 'center', fig.width=8, fig.asp=0.618}
+ggplot(cox_surv, aes(x=time, y=surv)) + 
+  geom_line(aes(y = surv0, colour = "1")) + 
+  geom_line(aes(y = surv1, colour = "2")) + 
+  scale_x_continuous(limits = c(0, 120), breaks=seq(0,120,12)) +
+  scale_y_continuous(limits=c(0.6, 1), breaks=seq(0.6, 1, 0.2)) +
+  xlab("Months") + 
+  ylab("Survival") + 
+  ggtitle("Cox proportional hazards model (g-computation)") + 
+  labs(colour="A:") +
+  theme_bw() + 
+  theme(legend.position="bottom")
+
+```
+
+# Inverse probability of treatment weighting
+
+## Logistic regression
+
+```{r iptw-logit}
+# set event and id columns
+nhefs$event <- nhefs$death
+nhefs$id <- nhefs$seqn
+
+iptw_logistic <- function(formula, data, indices) {
+  
+  # length of final follow-up in sample
+  tmax <- max(data$survtime, na.rm=T)
+  
+  # bootstrap individuals
+  id <- unique(data$id)
+  random_id <- sample(id, length(id), replace = TRUE)
+  d <- data |>
+    filter(id %in% random_id)
+
+  # estimation of denominator of ip weights
+  p.denom <- glm(formula, family=binomial(), data=d)
+  d$pd.qsmk <- predict(p.denom, d, type="response")
+
+  # estimation of numerator of ip weights
+  p.num <- glm(qsmk ~ 1, data=d, family=binomial())
+  d$pn.qsmk <- predict(p.num, d, type="response")
+  
+  # computation of estimated weights
+  d$sw.a <- ifelse(d$qsmk==1, d$pn.qsmk/d$pd.qsmk,
+                       (1-d$pn.qsmk)/(1-d$pd.qsmk))
+  
+  # creation of person-month data
+  d.iptw <- expandRows(d, "survtime", drop=F) 
+  d.iptw$time <- sequence(rle(d.iptw$id)$lengths)-1
+  d.iptw$event <- ifelse(d.iptw$time==d.iptw$survtime-1 & 
+                            d.iptw$event==1, 1, 0)
+  d.iptw$timesq <- d.iptw$time^2
+  
+  # fit weighted polynomial logistic model
+  ipw.model <- glm(event==0 ~ qsmk + I(qsmk*time) + I(qsmk*timesq) + 
+                    time + timesq, family=binomial(), weight=sw.a,
+                  data=d.iptw)
+
+  # creation of survival curves
+  ipw.qsmk0 <- data.frame(cbind(seq(0, tmax-1),0,(seq(0, tmax-1))^2))
+  ipw.qsmk1 <- data.frame(cbind(seq(0, tmax-1),1,(seq(0, tmax-1))^2))
+
+  colnames(ipw.qsmk0) <- c("time", "qsmk", "timesq")
+  colnames(ipw.qsmk1) <- c("time", "qsmk", "timesq")
+
+  # assignment of estimated (1-hazard) to each person-month */
+  ipw.qsmk0$p.noevent0 <- predict(ipw.model, ipw.qsmk0, type="response")
+  ipw.qsmk1$p.noevent1 <- predict(ipw.model, ipw.qsmk1, type="response")
+  
+  # computation of survival for each person-month
+  ipw.qsmk0$surv0 <- cumprod(ipw.qsmk0$p.noevent0)
+  ipw.qsmk1$surv1 <- cumprod(ipw.qsmk1$p.noevent1)
+  
+  return(c(ipw.qsmk0$surv0, ipw.qsmk1$surv1))
+}
+
+# iptw bootstrap
+(bootstrapped_results <- boot(data=nhefs,
+                              statistic=iptw_logistic,
+                              R=n_R,
+                              formula=qsmk ~ sex + race + age + I(age*age) + as.factor(education)
+                              + smokeintensity + I(smokeintensity*smokeintensity)
+                              + smokeyrs + I(smokeyrs*smokeyrs) + as.factor(exercise)
+                              + as.factor(active) + wt71 + I(wt71*wt71)))
+
+# data wrangle for plotting
+tmin <- min(nhefs.surv$time, na.rm=T)
+tmax <- max(nhefs.surv$time, na.rm=T)
+
+# collect results in data frame
+boot_samples <- with(
+  bootstrapped_results,
+  data.frame(
+  time = rep(tmin:tmax, each=R),
+  surv0 = c(t[,(tmin+1):(tmax+1)]),
+  surv1 = c(t[,(tmax+2):(tmax*2+2)]),
+  draw = rep(1:R, each=tmax+1))
+  )
+
+```
+
+```{r iptw-logit-plot, fig.width=8, fig.asp=0.618}
+# plot
+(survival_plot <- ggplot(boot_samples, aes(x=time, y=surv)) + 
+  stat_lineribbon(aes(y = surv0, colour = "0"), fill = "grey", alpha = 0.5, .width=.95) +
+  stat_lineribbon(aes(y = surv1, colour = "1"), fill = "grey", alpha = 0.5, .width=.95) +
+  xlab("Months of follow-up") + 
+  scale_x_continuous(limits = c(0, 120), breaks=seq(0,120,12)) +
+  scale_y_continuous(limits=c(0.6, 1), breaks=seq(0.6, 1, 0.2)) +
+  ylab("Survival") + 
+  ggtitle("Logistic polynomial model (IPTW)") + 
+  labs(colour="A:") +
+  theme_bw() + 
+  theme(legend.position="bottom"))
+```
