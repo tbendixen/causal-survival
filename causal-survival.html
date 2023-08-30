@@ -120,6 +120,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   <li><a href="#inverse-probability-of-treatment-weighting" id="toc-inverse-probability-of-treatment-weighting" class="nav-link" data-scroll-target="#inverse-probability-of-treatment-weighting"><span class="toc-section-number">5</span>  Inverse probability of treatment weighting</a>
   <ul class="collapse">
   <li><a href="#logistic-regression-1" id="toc-logistic-regression-1" class="nav-link" data-scroll-target="#logistic-regression-1"><span class="toc-section-number">5.1</span>  Logistic regression</a></li>
+  <li><a href="#cox-regression-1" id="toc-cox-regression-1" class="nav-link" data-scroll-target="#cox-regression-1"><span class="toc-section-number">5.2</span>  Cox regression</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -323,7 +324,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </section>
 <section id="cox-regression" class="level2" data-number="4.2">
 <h2 data-number="4.2" class="anchored" data-anchor-id="cox-regression"><span class="header-section-number">4.2</span> Cox regression</h2>
-<div class="cell" data-hash="causal-survival_cache/html/gcomp-cox_92a0dbc7d00d8899d01b9793ee4c96a1">
+<div class="cell" data-hash="causal-survival_cache/html/gcomp-cox_e32f1dd7a9f7de16ec0760cb47d5e336">
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># set event and id columns</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>nhefs<span class="sc">$</span>event <span class="ot">&lt;-</span> nhefs<span class="sc">$</span>death</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>nhefs<span class="sc">$</span>id <span class="ot">&lt;-</span> nhefs<span class="sc">$</span>seqn</span>
@@ -333,7 +334,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>                              <span class="sc">+</span> <span class="fu">as.factor</span>(education) <span class="sc">+</span> smokeintensity </span>
 <span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>                              <span class="sc">+</span> smokeintensity<span class="sc">:</span>smokeintensity <span class="sc">+</span> smkintensity82_71 </span>
 <span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>                              <span class="sc">+</span> smokeyrs <span class="sc">+</span> smokeyrs<span class="sc">:</span>smokeyrs <span class="sc">+</span> <span class="fu">as.factor</span>(exercise) </span>
-<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>                              <span class="sc">+</span> <span class="fu">as.factor</span>(active) <span class="sc">+</span> wt71 <span class="sc">+</span> wt71<span class="sc">:</span>wt71, <span class="at">data =</span> nhefs, <span class="at">robust=</span><span class="cn">TRUE</span>)</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>                              <span class="sc">+</span> <span class="fu">as.factor</span>(active) <span class="sc">+</span> wt71 <span class="sc">+</span> wt71<span class="sc">:</span>wt71, <span class="at">data =</span> nhefs)</span>
 <span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a><span class="co"># creation of datasets with all observed time points for </span></span>
 <span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a><span class="co"># each individual under each treatment level.</span></span>
@@ -497,6 +498,66 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position=</span><span class="st">"bottom"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <p><img src="causal-survival_files/figure-html/iptw-logit-plot-1.png" class="img-fluid" width="768"></p>
+</div>
+</div>
+</section>
+<section id="cox-regression-1" class="level2" data-number="5.2">
+<h2 data-number="5.2" class="anchored" data-anchor-id="cox-regression-1"><span class="header-section-number">5.2</span> Cox regression</h2>
+<p>NB: This gives a slightly different result from the other approaches – namely, that there’s no notable difference between <code>qsmk = 1</code> and <code>qsmk = 0</code> when balancing the groups with IP weights. I’ve tried to debug the code but without success. We can check that the post-processing code is working as intended by deleting the <code>weights</code> argument from the Cox model; then, we see a clear difference between the two groups.</p>
+<div class="cell" data-hash="causal-survival_cache/html/iptw-cox_6cbc03d9c339902a37af9a53591ca519">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>nhefs<span class="sc">$</span>event <span class="ot">&lt;-</span> nhefs<span class="sc">$</span>death</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>nhefs<span class="sc">$</span>id <span class="ot">&lt;-</span> nhefs<span class="sc">$</span>seqn</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>d <span class="ot">&lt;-</span> nhefs</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="co"># estimation of denominator of ip weights</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>p.denom <span class="ot">&lt;-</span> <span class="fu">glm</span>(qsmk <span class="sc">~</span> sex <span class="sc">+</span> race <span class="sc">+</span> age <span class="sc">+</span> <span class="fu">I</span>(age<span class="sc">*</span>age) <span class="sc">+</span> <span class="fu">as.factor</span>(education)</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>               <span class="sc">+</span> smokeintensity <span class="sc">+</span> <span class="fu">I</span>(smokeintensity<span class="sc">*</span>smokeintensity)</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>               <span class="sc">+</span> smokeyrs <span class="sc">+</span> <span class="fu">I</span>(smokeyrs<span class="sc">*</span>smokeyrs) <span class="sc">+</span> <span class="fu">as.factor</span>(exercise)</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>               <span class="sc">+</span> <span class="fu">as.factor</span>(active) <span class="sc">+</span> wt71 <span class="sc">+</span> <span class="fu">I</span>(wt71<span class="sc">*</span>wt71), <span class="at">family=</span><span class="fu">binomial</span>(), <span class="at">data=</span>d)</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>d<span class="sc">$</span>pd.qsmk <span class="ot">&lt;-</span> <span class="fu">predict</span>(p.denom, d, <span class="at">type=</span><span class="st">"response"</span>)</span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a><span class="co"># estimation of numerator of ip weights</span></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>p.num <span class="ot">&lt;-</span> <span class="fu">glm</span>(qsmk <span class="sc">~</span> <span class="dv">1</span>, <span class="at">data=</span>d, <span class="at">family=</span><span class="fu">binomial</span>())</span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>d<span class="sc">$</span>pn.qsmk <span class="ot">&lt;-</span> <span class="fu">predict</span>(p.num, d, <span class="at">type=</span><span class="st">"response"</span>)</span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a><span class="co"># computation of estimated weights</span></span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>d<span class="sc">$</span>sw.a <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(d<span class="sc">$</span>qsmk<span class="sc">==</span><span class="dv">1</span>, d<span class="sc">$</span>pn.qsmk<span class="sc">/</span>d<span class="sc">$</span>pd.qsmk,</span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>                 (<span class="dv">1</span><span class="sc">-</span>d<span class="sc">$</span>pn.qsmk)<span class="sc">/</span>(<span class="dv">1</span><span class="sc">-</span>d<span class="sc">$</span>pd.qsmk))</span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a><span class="co"># fit of weighted Cox model</span></span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a>mod <span class="ot">&lt;-</span> <span class="fu">coxph</span>(<span class="fu">Surv</span>(survtime, event) <span class="sc">~</span> qsmk, <span class="at">weights =</span> sw.a, <span class="at">data =</span> d)</span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a><span class="co"># wrangle for plotting</span></span>
+<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a>ipw.qsmk0 <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">qsmk=</span><span class="fu">c</span>(<span class="dv">0</span>))</span>
+<span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a>ipw.qsmk1 <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">qsmk=</span><span class="fu">c</span>(<span class="dv">1</span>))</span>
+<span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-28"><a href="#cb9-28" aria-hidden="true" tabindex="-1"></a>iptw_fit_qsmk0 <span class="ot">&lt;-</span> <span class="fu">survfit</span>(mod, <span class="at">newdata =</span> ipw.qsmk0)</span>
+<span id="cb9-29"><a href="#cb9-29" aria-hidden="true" tabindex="-1"></a>iptw_fit_qsmk1 <span class="ot">&lt;-</span> <span class="fu">survfit</span>(mod, <span class="at">newdata =</span> ipw.qsmk1)</span>
+<span id="cb9-30"><a href="#cb9-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-31"><a href="#cb9-31" aria-hidden="true" tabindex="-1"></a>iptw_surv <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">time =</span> iptw_fit_qsmk0<span class="sc">$</span>time,</span>
+<span id="cb9-32"><a href="#cb9-32" aria-hidden="true" tabindex="-1"></a>                        <span class="at">surv0 =</span> iptw_fit_qsmk0<span class="sc">$</span>surv,</span>
+<span id="cb9-33"><a href="#cb9-33" aria-hidden="true" tabindex="-1"></a>                        <span class="at">surv0_l =</span> iptw_fit_qsmk0<span class="sc">$</span>lower,</span>
+<span id="cb9-34"><a href="#cb9-34" aria-hidden="true" tabindex="-1"></a>                        <span class="at">surv0_u =</span> iptw_fit_qsmk0<span class="sc">$</span>upper,</span>
+<span id="cb9-35"><a href="#cb9-35" aria-hidden="true" tabindex="-1"></a>                        <span class="at">surv1 =</span> iptw_fit_qsmk1<span class="sc">$</span>surv,</span>
+<span id="cb9-36"><a href="#cb9-36" aria-hidden="true" tabindex="-1"></a>                        <span class="at">surv1_l =</span> iptw_fit_qsmk1<span class="sc">$</span>lower,</span>
+<span id="cb9-37"><a href="#cb9-37" aria-hidden="true" tabindex="-1"></a>                        <span class="at">surv1_u =</span> iptw_fit_qsmk1<span class="sc">$</span>upper)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-hash="causal-survival_cache/html/iptw-cox-plot_6bb177bf9fa436d738bf85101b394b90">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># plot</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>(survival_plot <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(iptw_surv, <span class="fu">aes</span>(<span class="at">x=</span>time, <span class="at">y=</span>surv)) <span class="sc">+</span> </span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_line</span>(<span class="fu">aes</span>(<span class="at">y =</span> surv0, <span class="at">colour =</span> <span class="st">"1"</span>)) <span class="sc">+</span> </span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_line</span>(<span class="fu">aes</span>(<span class="at">y =</span> surv1, <span class="at">colour =</span> <span class="st">"2"</span>)) <span class="sc">+</span> </span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">xlab</span>(<span class="st">"Months of follow-up"</span>) <span class="sc">+</span> </span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_x_continuous</span>(<span class="at">limits =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">120</span>), <span class="at">breaks=</span><span class="fu">seq</span>(<span class="dv">0</span>,<span class="dv">120</span>,<span class="dv">12</span>)) <span class="sc">+</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_y_continuous</span>(<span class="at">limits=</span><span class="fu">c</span>(<span class="fl">0.6</span>, <span class="dv">1</span>), <span class="at">breaks=</span><span class="fu">seq</span>(<span class="fl">0.6</span>, <span class="dv">1</span>, <span class="fl">0.2</span>)) <span class="sc">+</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ylab</span>(<span class="st">"Survival"</span>) <span class="sc">+</span> </span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ggtitle</span>(<span class="st">"Cox proportional hazards model (IPTW)"</span>) <span class="sc">+</span> </span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">colour=</span><span class="st">"A:"</span>) <span class="sc">+</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme_bw</span>() <span class="sc">+</span> </span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme</span>(<span class="at">legend.position=</span><span class="st">"bottom"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="causal-survival_files/figure-html/iptw-cox-plot-1.png" class="img-fluid" width="672"></p>
 </div>
 </div>
 </section>
