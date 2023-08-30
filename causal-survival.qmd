@@ -202,7 +202,7 @@ mod <- coxph(Surv(survtime, event) ~ qsmk + sex + race + age + age:age
                               + as.factor(education) + smokeintensity 
                               + smokeintensity:smokeintensity + smkintensity82_71 
                               + smokeyrs + smokeyrs:smokeyrs + as.factor(exercise) 
-                              + as.factor(active) + wt71 + wt71:wt71, data = nhefs, robust=TRUE)
+                              + as.factor(active) + wt71 + wt71:wt71, data = nhefs)
 
 # creation of datasets with all observed time points for 
 # each individual under each treatment level.
@@ -362,3 +362,64 @@ boot_samples <- with(
   theme_bw() + 
   theme(legend.position="bottom"))
 ```
+
+## Cox regression
+
+NB: This gives a slightly different result from the other approaches -- namely, that there's no notable difference between `qsmk = 1` and `qsmk = 0` when balancing the groups with IP weights. I've tried to debug the code but without success. We can check that the post-processing code is working as intended by deleting the `weights` argument from the Cox model; then, we see a clear difference between the two groups.
+
+```{r iptw-cox}
+nhefs$event <- nhefs$death
+nhefs$id <- nhefs$seqn
+
+d <- nhefs
+
+# estimation of denominator of ip weights
+p.denom <- glm(qsmk ~ sex + race + age + I(age*age) + as.factor(education)
+               + smokeintensity + I(smokeintensity*smokeintensity)
+               + smokeyrs + I(smokeyrs*smokeyrs) + as.factor(exercise)
+               + as.factor(active) + wt71 + I(wt71*wt71), family=binomial(), data=d)
+d$pd.qsmk <- predict(p.denom, d, type="response")
+
+# estimation of numerator of ip weights
+p.num <- glm(qsmk ~ 1, data=d, family=binomial())
+d$pn.qsmk <- predict(p.num, d, type="response")
+
+# computation of estimated weights
+d$sw.a <- ifelse(d$qsmk==1, d$pn.qsmk/d$pd.qsmk,
+                 (1-d$pn.qsmk)/(1-d$pd.qsmk))
+
+# fit of weighted Cox model
+mod <- coxph(Surv(survtime, event) ~ qsmk, weights = sw.a, data = d)
+
+# wrangle for plotting
+ipw.qsmk0 <- data.frame(qsmk=c(0))
+ipw.qsmk1 <- data.frame(qsmk=c(1))
+
+iptw_fit_qsmk0 <- survfit(mod, newdata = ipw.qsmk0)
+iptw_fit_qsmk1 <- survfit(mod, newdata = ipw.qsmk1)
+
+iptw_surv <- data.frame(time = iptw_fit_qsmk0$time,
+                        surv0 = iptw_fit_qsmk0$surv,
+                        surv0_l = iptw_fit_qsmk0$lower,
+                        surv0_u = iptw_fit_qsmk0$upper,
+                        surv1 = iptw_fit_qsmk1$surv,
+                        surv1_l = iptw_fit_qsmk1$lower,
+                        surv1_u = iptw_fit_qsmk1$upper)
+```
+
+```{r iptw-cox-plot}
+# plot
+(survival_plot <- ggplot(iptw_surv, aes(x=time, y=surv)) + 
+    geom_line(aes(y = surv0, colour = "1")) + 
+    geom_line(aes(y = surv1, colour = "2")) + 
+    xlab("Months of follow-up") + 
+    scale_x_continuous(limits = c(0, 120), breaks=seq(0,120,12)) +
+    scale_y_continuous(limits=c(0.6, 1), breaks=seq(0.6, 1, 0.2)) +
+    ylab("Survival") + 
+    ggtitle("Cox proportional hazards model (IPTW)") + 
+    labs(colour="A:") +
+    theme_bw() + 
+    theme(legend.position="bottom"))
+
+```
+
