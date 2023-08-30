@@ -27,12 +27,13 @@ In this notebook, we demonstrate various flavors of non-, semi- and parametric s
 
 Specifically, we'll cover:
 
--   G-computation with logistic polynomial regression **[DONE]**
--   G-computation with Cox proportional hazards model **[DONE - needs bootstrapping]**
--   Inverse probability of treatment weighting in logistic regression **[DONE]**
--   Inverse probability of treatment weighting in Cox proportional hazards model **[DONE - needs bootstrapping]**
--   Inverse probability of treatment weighting in Kaplan-Meier **[DONE]**
--   Sub-group analysis with g-computation
+-   G-computation with logistic polynomial regression **\[DONE\]**
+-   G-computation with Cox proportional hazards model **\[DONE - needs bootstrapping\]**
+-   Inverse probability of treatment weighting in logistic regression **\[DONE\]**
+-   Inverse probability of treatment weighting in Cox proportional hazards model **\[DONE - needs bootstrapping\]**
+-   Inverse probability of treatment weighting in Kaplan-Meier **\[DONE\]**
+-   Sub-group analysis with g-computation and logistic polynomial regression **\[DONE - needs bootstrapping\]**
+-   Sub-group analysis with IP weighted Kaplan-Meier **\[DONE\]**
 
 The dataset is `nhefs` containing data from the National Health and Nutrition Examination Survey Data I Epidemiologic Follow-up Study.
 
@@ -70,8 +71,8 @@ nhefs.surv$timesq <- nhefs.surv$time^2
 # set id column
 nhefs.surv$id <- nhefs.surv$seqn
 
-# set number of iterations to bootstrap
-n_R <- 100
+# set number of iterations to bootstrap (high values are computationally intensive)
+n_R <- 1e3
 ```
 
 # G-computation
@@ -192,7 +193,7 @@ survival_plot + annotation_custom(grob = ggplotGrob(contrast_plot),
 
 ## Cox regression
 
-```{r gcomp-cox}
+```{r gcomp-cox, dependson="dat-prep"}
 # set event and id columns
 nhefs$event <- nhefs$death
 nhefs$id <- nhefs$seqn
@@ -246,7 +247,7 @@ cox_surv <- data.frame(
 
 ```
 
-```{r gcomp-cox-plot, fig.align = 'center', fig.width=8, fig.asp=0.618}
+```{r gcomp-cox-plot, dependson="gcomp-cox", fig.align = 'center', fig.width=8, fig.asp=0.618}
 ggplot(cox_surv, aes(x=time, y=surv)) + 
   geom_line(aes(y = surv0, colour = "1")) + 
   geom_line(aes(y = surv1, colour = "2")) + 
@@ -265,7 +266,7 @@ ggplot(cox_surv, aes(x=time, y=surv)) +
 
 ## Logistic regression
 
-```{r iptw-logit}
+```{r iptw-logit, dependson="dat-prep"}
 # set event and id columns
 nhefs$event <- nhefs$death
 nhefs$id <- nhefs$seqn
@@ -348,7 +349,7 @@ boot_samples <- with(
 
 ```
 
-```{r iptw-logit-plot, fig.width=8, fig.asp=0.618}
+```{r iptw-logit-plot, dependson="iptw-logit", fig.width=8, fig.asp=0.618}
 # plot
 (survival_plot <- ggplot(boot_samples, aes(x=time, y=surv)) + 
   stat_lineribbon(aes(y = surv0, colour = "0"), fill = "grey", alpha = 0.5, .width=.95) +
@@ -365,7 +366,7 @@ boot_samples <- with(
 
 ## Cox regression
 
-NB: This gives a slightly different result from the other approaches -- namely, that there's no notable difference between `qsmk = 1` and `qsmk = 0` when balancing the groups with IP weights. 
+NB: This gives a slightly different result from the other approaches -- namely, that there's no notable difference between `qsmk = 1` and `qsmk = 0` when balancing the groups with IP weights.
 
 I've tried to debug the code but without success. We can check that the post-processing code is working as intended by deleting the `weights` argument from the Cox model; then, we see a clear difference between the two groups.
 
@@ -393,7 +394,7 @@ d$sw.a <- ifelse(d$qsmk==1, d$pn.qsmk/d$pd.qsmk,
                  (1-d$pn.qsmk)/(1-d$pd.qsmk))
 
 # fit of weighted Cox model
-mod <- coxph(Surv(survtime, event) ~ qsmk, weights = sw.a, data = d)
+mod <- coxph(Surv(survtime, event) ~ qsmk, weights = d$sw.a, data = d)
 
 # wrangle for plotting
 ipw.qsmk0 <- data.frame(qsmk=c(0))
@@ -411,7 +412,7 @@ iptw_surv <- data.frame(time = iptw_fit_qsmk0$time,
                         surv1_u = iptw_fit_qsmk1$upper)
 ```
 
-```{r iptw-cox-plot}
+```{r iptw-cox-plot, dependson="iptw-cox", fig.width=8, fig.asp=0.618}
 # plot
 (survival_plot <- ggplot(iptw_surv, aes(x=time, y=surv)) + 
     geom_line(aes(y = surv0, colour = "1")) + 
@@ -432,8 +433,8 @@ iptw_surv <- data.frame(time = iptw_fit_qsmk0$time,
 ## Unadjusted
 
 ```{r unadj-kaplan-meier, fig.width=8, fig.asp=0.618}
-# we re-use weights from earlier
-npfit <- survfit(Surv(survtime, death) ~ qsmk, data=nhefs)
+# no weights
+npfit <- survfit(Surv(survtime, event) ~ qsmk, data=nhefs)
 
 # create plot
 npplot <- ggsurvplot(npfit, data = nhefs, xlab="Months of follow-up",
@@ -451,7 +452,7 @@ npplot$plot + scale_x_continuous(limits = c(0, 120), breaks=seq(0,120,12)) +
 
 ```{r ip-kaplan-meier, fig.width=8, fig.asp=0.618}
 # we re-use weights from earlier
-npfit <- survfit(Surv(survtime, death) ~ qsmk, weights = d$sw.a, data=d)
+npfit <- survfit(Surv(survtime, event) ~ qsmk, weights = d$sw.a, data=d)
 
 # create plot
 npplot <- ggsurvplot(npfit, data = nhefs, xlab="Months of follow-up",
@@ -463,4 +464,208 @@ npplot$plot + scale_x_continuous(limits = c(0, 120), breaks=seq(0,120,12)) +
            scale_y_continuous(limits=c(0.6, 1), breaks=seq(0.6, 1, 0.2))  + 
            theme(legend.position="bottom") + 
            ggtitle("Kaplan-Meier (IPTW)")
+```
+
+# Sub-group analysis
+
+## G-computation
+
+Let's say we're interested in assessing whether the effect of `qsmk` differs by sex.
+
+```{r sub-gcomp}
+# set-up data frame -- easier for converting to bootstrapping later
+d <- nhefs.surv
+sample <- nhefs
+
+tmax <- max(d$time, na.rm=T) + 1
+
+# covariate-adjusted logistic regression
+# only new thing is that we include an interaction term for qsmk*sex
+mod <- glm(event==0 ~ qsmk + I(qsmk*sex) + I(qsmk*time) + I(qsmk*timesq)
+           + time + timesq + sex + race + age + I(age*age)
+           + as.factor(education) + smokeintensity 
+           + I(smokeintensity*smokeintensity) + smkintensity82_71 
+           + smokeyrs + I(smokeyrs*smokeyrs) + as.factor(exercise) 
+           + as.factor(active) + wt71 + I(wt71*wt71), 
+           family=binomial(), data=d)
+
+# creation of dataset with all time points for 
+# each individual under each treatment level.
+# predictions are obtained for the full sample,
+# i.e. post-stratification to the sample of interest.
+qsmk0 <- expandRows(sample, count=tmax, count.is.col=F) 
+qsmk0$time <- rep(seq(0, tmax-1), nrow(sample))
+qsmk0$timesq <- qsmk0$time^2
+
+qsmk1 <- qsmk0
+qsmk1$qsmk <- 1
+
+# qsmk = 0, sex = 0
+q0s0 <- qsmk0
+q0s0$sex <- 0
+
+# qsmk = 0, sex = 1
+q0s1 <- qsmk0
+q0s1$sex <- 1
+
+# qsmk = 1, sex = 0
+q1s0 <- qsmk1
+q1s0$sex <- 0
+
+# qsmk = 1, sex = 1
+q1s1 <- qsmk1
+q1s1$sex <- 1
+
+# predicted probabilities for each strata and condition
+q0s0$p.noevent0 <- predict(mod, q0s0, type="response")
+q0s1$p.noevent0 <- predict(mod, q0s1, type="response")
+q1s0$p.noevent0 <- predict(mod, q1s0, type="response")
+q1s1$p.noevent0 <- predict(mod, q1s1, type="response")
+
+# computation of survival for each person-month
+q0s0.surv <- q0s0 |> group_by(seqn) |> mutate(surv = cumprod(p.noevent0))
+q0s1.surv <- q0s1 |> group_by(seqn) |> mutate(surv = cumprod(p.noevent0))
+q1s0.surv <- q1s0 |> group_by(seqn) |> mutate(surv = cumprod(p.noevent0))
+q1s1.surv <- q1s1 |> group_by(seqn) |> mutate(surv = cumprod(p.noevent0))
+
+# marginalize
+surv00 <-
+  aggregate(q0s0.surv,
+            by = list(q0s0.surv$time),
+            FUN = mean)[c("qsmk", "time", "surv")]
+surv01 <-
+  aggregate(q0s1.surv,
+            by = list(q0s1.surv$time),
+            FUN = mean)[c("qsmk", "time", "surv")]
+
+surv10 <-
+  aggregate(q1s0.surv,
+            by = list(q1s0.surv$time),
+            FUN = mean)[c("qsmk", "time", "surv")]
+surv11 <-
+  aggregate(q1s1.surv,
+            by = list(q1s1.surv$time),
+            FUN = mean)[c("qsmk", "time", "surv")]
+
+# data wrangle for plotting
+subgroup_surv <- data.frame(
+  time = surv00$time,
+  surv00 = surv00$surv,
+  surv01 = surv01$surv,
+  surv10 = surv10$surv,
+  surv11 = surv11$surv
+)
+
+```
+
+```{r sub-gcomp-plot, dependson="sub-gcomp", fig.width=8, fig.asp=0.618}
+ggplot(subgroup_surv, aes(x=time, y=surv)) + 
+  geom_line(aes(y = surv00, colour = "1")) + 
+  geom_line(aes(y = surv01, colour = "2")) + 
+  geom_line(aes(y = surv10, colour = "3")) + 
+  geom_line(aes(y = surv11, colour = "4")) +
+  scale_x_continuous(limits = c(0, 120), breaks=seq(0,120,12)) +
+  scale_y_continuous(limits=c(0.6, 1), breaks=seq(0.6, 1, 0.2)) +
+  xlab("Months") + 
+  ylab("Survival") + 
+  ggtitle("Subgroup logistic polynomial model (g-computation)") + 
+  labs(colour="A:") +
+  scale_color_hue(labels = c("qsmk=0, sex=0", "qsmk=0, sex=1",
+                             "qsmk=1, sex=0", "qsmk=1, sex=1")) +
+  theme_bw() + 
+  theme(legend.position="bottom")
+
+```
+
+## Kaplan-Meier
+
+Let's compare our g-computation results with IP weighted Kaplan-Meier. Now, for subgroup analysis with IPTW, there are a few subtleties. Hernan and Robins (2020:165-166) writes:
+
+>Marginal structural models do not include covariates when the target parameter is the average causal effect in the population. However, one may include covariates --- which may be non-confounders --- in a marginal structural model to assess effect modification. the effect estimates. In most settings, the vector of covariates $L$ should include $V$. Even when $V$ and $A$ are independent given the other components of $L$ and $V$ is not needed to ensure exchangeability, including $V$ in $L$ will generally increase the efficiency with which the parameters of the marginal structural model are estimated.
+
+They continue:
+
+>Because we are considering a model for the effect of treatment within levels of $V$, we now have the choice to use either $f[A]$ or $f[A|V]$ in the numerator of the stabilized weights. IP weighting based on the stabilized weights $SW^A(V) = \frac{f[A|V]} {f[A|L]}$ generally results in narrower confidence intervals around the effect estimates. Some intuition for the generally increased statistical efficiency of $SW^A (V)$ is that the variance of the weights $SW^A(V)$ is less than that of the weights $SW^A$. We estimate $SW^A (V)$ using the same approach as for $SW^A$, except that we add the covariate $V$ to the logistic model for the numerator of the weights.
+
+We'll try both approaches -- they give identical results in our case, perhaps due to the non-parametric nature of the Kaplan-Meier estimator?
+
+### Stabilized weights without $V$
+
+```{r sub-kaplan-meier, fig.width=8, fig.asp=0.618}
+# we re-use weights from earlier
+nhefs$event <- nhefs$death
+nhefs$id <- nhefs$seqn
+
+d <- nhefs
+
+# estimation of denominator of ip weights -- nothing new here
+p.denom <- glm(qsmk ~ as.factor(sex) + race + age + I(age*age) + as.factor(education)
+               + smokeintensity + I(smokeintensity*smokeintensity)
+               + smokeyrs + I(smokeyrs*smokeyrs) + as.factor(exercise)
+               + as.factor(active) + wt71 + I(wt71*wt71), family=binomial(), data=d)
+d$pd.qsmk <- predict(p.denom, d, type="response")
+
+# estimation of numerator of ip weights -- nothing new here
+p.num <- glm(qsmk ~ 1, data=d, family=binomial())
+d$pn.qsmk <- predict(p.num, d, type="response")
+
+# computation of estimated weights
+d$sw.a <- ifelse(d$qsmk==1, d$pn.qsmk/d$pd.qsmk,
+                 (1-d$pn.qsmk)/(1-d$pd.qsmk))
+
+# only new thing is that we add sex to the weighted model
+npfit <- survfit(Surv(survtime, event) ~ qsmk + as.factor(sex) + I(qsmk*sex), weights = d$sw.a, data=d)
+
+# create plot
+npplot <- ggsurvplot(npfit, data = nhefs, xlab="Months of follow-up",
+           ylab="Survival probability",
+           main="Product-Limit Survival Estimates", conf.int = TRUE) 
+
+# extract plot
+npplot$plot + scale_x_continuous(limits = c(0, 120), breaks=seq(0,120,12)) +
+           scale_y_continuous(limits=c(0.6, 1), breaks=seq(0.6, 1, 0.2))  + 
+           theme(legend.position="bottom") + 
+           ggtitle("Subgroup Kaplan-Meier (IPTW without V)")
+
+```
+
+### Stabilized weights with $V$
+
+```{r sub-kaplan-meier-wL, fig.width=8, fig.asp=0.618}
+# we compute new weights
+nhefs$event <- nhefs$death
+nhefs$id <- nhefs$seqn
+
+d <- nhefs
+
+# estimation of denominator of ip weights
+p.denom <- glm(qsmk ~ as.factor(sex) + race + age + I(age*age) + as.factor(education)
+               + smokeintensity + I(smokeintensity*smokeintensity)
+               + smokeyrs + I(smokeyrs*smokeyrs) + as.factor(exercise)
+               + as.factor(active) + wt71 + I(wt71*wt71), family=binomial(), data=d)
+d$pd.qsmk <- predict(p.denom, d, type="response")
+
+# estimation of numerator of ip weights
+# new thing is that we add sex to the numerator model
+p.num <- glm(qsmk ~ as.factor(sex), data=d, family=binomial())
+d$pn.qsmk <- predict(p.num, d, type="response")
+
+# computation of estimated weights
+d$sw.aV <- ifelse(d$qsmk==1, d$pn.qsmk/d$pd.qsmk,
+                 (1-d$pn.qsmk)/(1-d$pd.qsmk))
+
+# IP weighted Kaplan-Meier
+npfit_V <- survfit(Surv(survtime, event) ~ qsmk + sex + I(qsmk*sex), weights = d$sw.aV, data=d)
+
+# create plot
+npVplot <- ggsurvplot(npfit_V, data = nhefs, xlab="Months of follow-up",
+           ylab="Survival probability",
+           main="Product-Limit Survival Estimates", conf.int = TRUE) 
+
+# extract plot
+npVplot$plot + scale_x_continuous(limits = c(0, 120), breaks=seq(0,120,12)) +
+           scale_y_continuous(limits=c(0.6, 1), breaks=seq(0.6, 1, 0.2))  + 
+           theme(legend.position="bottom") + 
+           ggtitle("Subgroup Kaplan-Meier (IPTW with V)")
+
 ```
