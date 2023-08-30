@@ -98,6 +98,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <link href="causal-survival_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
 <link href="causal-survival_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
 
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
 
 </head>
 
@@ -126,6 +127,15 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   <ul class="collapse">
   <li><a href="#unadjusted" id="toc-unadjusted" class="nav-link" data-scroll-target="#unadjusted"><span class="toc-section-number">6.1</span>  Unadjusted</a></li>
   <li><a href="#ip-weighted" id="toc-ip-weighted" class="nav-link" data-scroll-target="#ip-weighted"><span class="toc-section-number">6.2</span>  IP weighted</a></li>
+  </ul></li>
+  <li><a href="#sub-group-analysis" id="toc-sub-group-analysis" class="nav-link" data-scroll-target="#sub-group-analysis"><span class="toc-section-number">7</span>  Sub-group analysis</a>
+  <ul class="collapse">
+  <li><a href="#g-computation-1" id="toc-g-computation-1" class="nav-link" data-scroll-target="#g-computation-1"><span class="toc-section-number">7.1</span>  G-computation</a></li>
+  <li><a href="#kaplan-meier-1" id="toc-kaplan-meier-1" class="nav-link" data-scroll-target="#kaplan-meier-1"><span class="toc-section-number">7.2</span>  Kaplan-Meier</a>
+  <ul class="collapse">
+  <li><a href="#stabilized-weights-without-v" id="toc-stabilized-weights-without-v" class="nav-link" data-scroll-target="#stabilized-weights-without-v">Stabilized weights without <span class="math inline">\(V\)</span></a></li>
+  <li><a href="#stabilized-weights-with-v" id="toc-stabilized-weights-with-v" class="nav-link" data-scroll-target="#stabilized-weights-with-v">Stabilized weights with <span class="math inline">\(V\)</span></a></li>
+  </ul></li>
   </ul></li>
   </ul>
 </nav>
@@ -165,7 +175,8 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <li>Inverse probability of treatment weighting in logistic regression <strong>[DONE]</strong></li>
 <li>Inverse probability of treatment weighting in Cox proportional hazards model <strong>[DONE - needs bootstrapping]</strong></li>
 <li>Inverse probability of treatment weighting in Kaplan-Meier <strong>[DONE]</strong></li>
-<li>Sub-group analysis with g-computation</li>
+<li>Sub-group analysis with g-computation and logistic polynomial regression <strong>[DONE - needs bootstrapping]</strong></li>
+<li>Sub-group analysis with IP weighted Kaplan-Meier <strong>[DONE]</strong></li>
 </ul>
 <p>The dataset is <code>nhefs</code> containing data from the National Health and Nutrition Examination Survey Data I Epidemiologic Follow-up Study.</p>
 </section>
@@ -203,8 +214,8 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="co"># set id column</span></span>
 <span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>nhefs.surv<span class="sc">$</span>id <span class="ot">&lt;-</span> nhefs.surv<span class="sc">$</span>seqn</span>
 <span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a><span class="co"># set number of iterations to bootstrap</span></span>
-<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>n_R <span class="ot">&lt;-</span> <span class="dv">100</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a><span class="co"># set number of iterations to bootstrap (high values are computationally intensive)</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>n_R <span class="ot">&lt;-</span> <span class="fl">1e3</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="g-computation" class="level1" data-number="4">
@@ -329,7 +340,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </section>
 <section id="cox-regression" class="level2" data-number="4.2">
 <h2 data-number="4.2" class="anchored" data-anchor-id="cox-regression"><span class="header-section-number">4.2</span> Cox regression</h2>
-<div class="cell" data-hash="causal-survival_cache/html/gcomp-cox_e32f1dd7a9f7de16ec0760cb47d5e336">
+<div class="cell" data-hash="causal-survival_cache/html/gcomp-cox_e0638d9879dca1dce55e3fc3cc9c6f3d">
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># set event and id columns</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>nhefs<span class="sc">$</span>event <span class="ot">&lt;-</span> nhefs<span class="sc">$</span>death</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>nhefs<span class="sc">$</span>id <span class="ot">&lt;-</span> nhefs<span class="sc">$</span>seqn</span>
@@ -381,7 +392,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb5-49"><a href="#cb5-49" aria-hidden="true" tabindex="-1"></a>  <span class="at">surv1 =</span> surv1<span class="sc">$</span>surv</span>
 <span id="cb5-50"><a href="#cb5-50" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div class="cell" data-layout-align="center" data-fig.asp="0.618" data-hash="causal-survival_cache/html/gcomp-cox-plot_51605662b54f5649c8b773192f80546d">
+<div class="cell" data-layout-align="center" data-fig.asp="0.618" data-hash="causal-survival_cache/html/gcomp-cox-plot_58db8d751aac103928a87596aba5f4f3">
 <div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(cox_surv, <span class="fu">aes</span>(<span class="at">x=</span>time, <span class="at">y=</span>surv)) <span class="sc">+</span> </span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="fu">aes</span>(<span class="at">y =</span> surv0, <span class="at">colour =</span> <span class="st">"1"</span>)) <span class="sc">+</span> </span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="fu">aes</span>(<span class="at">y =</span> surv1, <span class="at">colour =</span> <span class="st">"2"</span>)) <span class="sc">+</span> </span>
@@ -407,7 +418,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <h1 data-number="5"><span class="header-section-number">5</span> Inverse probability of treatment weighting</h1>
 <section id="logistic-regression-1" class="level2" data-number="5.1">
 <h2 data-number="5.1" class="anchored" data-anchor-id="logistic-regression-1"><span class="header-section-number">5.1</span> Logistic regression</h2>
-<div class="cell" data-hash="causal-survival_cache/html/iptw-logit_d835c4da651652ba801888f83bb7fca1">
+<div class="cell" data-hash="causal-survival_cache/html/iptw-logit_888e96b071e19a16aeb381a8d2bfdca9">
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># set event and id columns</span></span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>nhefs<span class="sc">$</span>event <span class="ot">&lt;-</span> nhefs<span class="sc">$</span>death</span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>nhefs<span class="sc">$</span>id <span class="ot">&lt;-</span> nhefs<span class="sc">$</span>seqn</span>
@@ -488,7 +499,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb7-78"><a href="#cb7-78" aria-hidden="true" tabindex="-1"></a>  <span class="at">draw =</span> <span class="fu">rep</span>(<span class="dv">1</span><span class="sc">:</span>R, <span class="at">each=</span>tmax<span class="sc">+</span><span class="dv">1</span>))</span>
 <span id="cb7-79"><a href="#cb7-79" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div class="cell" data-fig.asp="0.618" data-hash="causal-survival_cache/html/iptw-logit-plot_ad0bc14b6f7f2dc6cbd4bf68639ff406">
+<div class="cell" data-fig.asp="0.618" data-hash="causal-survival_cache/html/iptw-logit-plot_5b41d987ad01acda3beb17e1166f4243">
 <div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># plot</span></span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>(survival_plot <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(boot_samples, <span class="fu">aes</span>(<span class="at">x=</span>time, <span class="at">y=</span>surv)) <span class="sc">+</span> </span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stat_lineribbon</span>(<span class="fu">aes</span>(<span class="at">y =</span> surv0, <span class="at">colour =</span> <span class="st">"0"</span>), <span class="at">fill =</span> <span class="st">"grey"</span>, <span class="at">alpha =</span> <span class="fl">0.5</span>, <span class="at">.width=</span>.<span class="dv">95</span>) <span class="sc">+</span></span>
@@ -511,7 +522,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <p>NB: This gives a slightly different result from the other approaches – namely, that there’s no notable difference between <code>qsmk = 1</code> and <code>qsmk = 0</code> when balancing the groups with IP weights.</p>
 <p>I’ve tried to debug the code but without success. We can check that the post-processing code is working as intended by deleting the <code>weights</code> argument from the Cox model; then, we see a clear difference between the two groups.</p>
 <p>This could indicate that, when the hazard is constrained to be proportional, we find little evidence of a difference between the two groups. This would be sort of consistent with the IP weighted Kaplan-Meier below.</p>
-<div class="cell" data-hash="causal-survival_cache/html/iptw-cox_6cbc03d9c339902a37af9a53591ca519">
+<div class="cell" data-hash="causal-survival_cache/html/iptw-cox_5de3a629a580f05631b0118dc266dcd9">
 <div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>nhefs<span class="sc">$</span>event <span class="ot">&lt;-</span> nhefs<span class="sc">$</span>death</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>nhefs<span class="sc">$</span>id <span class="ot">&lt;-</span> nhefs<span class="sc">$</span>seqn</span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -533,7 +544,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>                 (<span class="dv">1</span><span class="sc">-</span>d<span class="sc">$</span>pn.qsmk)<span class="sc">/</span>(<span class="dv">1</span><span class="sc">-</span>d<span class="sc">$</span>pd.qsmk))</span>
 <span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a><span class="co"># fit of weighted Cox model</span></span>
-<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a>mod <span class="ot">&lt;-</span> <span class="fu">coxph</span>(<span class="fu">Surv</span>(survtime, event) <span class="sc">~</span> qsmk, <span class="at">weights =</span> sw.a, <span class="at">data =</span> d)</span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a>mod <span class="ot">&lt;-</span> <span class="fu">coxph</span>(<span class="fu">Surv</span>(survtime, event) <span class="sc">~</span> qsmk, <span class="at">weights =</span> d<span class="sc">$</span>sw.a, <span class="at">data =</span> d)</span>
 <span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a><span class="co"># wrangle for plotting</span></span>
 <span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a>ipw.qsmk0 <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">qsmk=</span><span class="fu">c</span>(<span class="dv">0</span>))</span>
@@ -550,7 +561,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb9-36"><a href="#cb9-36" aria-hidden="true" tabindex="-1"></a>                        <span class="at">surv1_l =</span> iptw_fit_qsmk1<span class="sc">$</span>lower,</span>
 <span id="cb9-37"><a href="#cb9-37" aria-hidden="true" tabindex="-1"></a>                        <span class="at">surv1_u =</span> iptw_fit_qsmk1<span class="sc">$</span>upper)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div class="cell" data-hash="causal-survival_cache/html/iptw-cox-plot_6bb177bf9fa436d738bf85101b394b90">
+<div class="cell" data-fig.asp="0.618" data-hash="causal-survival_cache/html/iptw-cox-plot_6e30f0c6e144b48e3ff0fb803de01a21">
 <div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># plot</span></span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>(survival_plot <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(iptw_surv, <span class="fu">aes</span>(<span class="at">x=</span>time, <span class="at">y=</span>surv)) <span class="sc">+</span> </span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_line</span>(<span class="fu">aes</span>(<span class="at">y =</span> surv0, <span class="at">colour =</span> <span class="st">"1"</span>)) <span class="sc">+</span> </span>
@@ -564,7 +575,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme_bw</span>() <span class="sc">+</span> </span>
 <span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme</span>(<span class="at">legend.position=</span><span class="st">"bottom"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
-<p><img src="causal-survival_files/figure-html/iptw-cox-plot-1.png" class="img-fluid" width="672"></p>
+<p><img src="causal-survival_files/figure-html/iptw-cox-plot-1.png" class="img-fluid" width="768"></p>
 </div>
 </div>
 </section>
@@ -573,9 +584,9 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <h1 data-number="6"><span class="header-section-number">6</span> Kaplan-Meier</h1>
 <section id="unadjusted" class="level2" data-number="6.1">
 <h2 data-number="6.1" class="anchored" data-anchor-id="unadjusted"><span class="header-section-number">6.1</span> Unadjusted</h2>
-<div class="cell" data-fig.asp="0.618" data-hash="causal-survival_cache/html/unadj-kaplan-meier_8cf6d726d2c91ec61b5ce07b1f211a65">
-<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># we re-use weights from earlier</span></span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>npfit <span class="ot">&lt;-</span> <span class="fu">survfit</span>(<span class="fu">Surv</span>(survtime, death) <span class="sc">~</span> qsmk, <span class="at">data=</span>nhefs)</span>
+<div class="cell" data-fig.asp="0.618" data-hash="causal-survival_cache/html/unadj-kaplan-meier_c45382bfb910c21051bdb34c5e2d6377">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># no weights</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>npfit <span class="ot">&lt;-</span> <span class="fu">survfit</span>(<span class="fu">Surv</span>(survtime, event) <span class="sc">~</span> qsmk, <span class="at">data=</span>nhefs)</span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="co"># create plot</span></span>
 <span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>npplot <span class="ot">&lt;-</span> <span class="fu">ggsurvplot</span>(npfit, <span class="at">data =</span> nhefs, <span class="at">xlab=</span><span class="st">"Months of follow-up"</span>,</span>
@@ -594,9 +605,9 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </section>
 <section id="ip-weighted" class="level2" data-number="6.2">
 <h2 data-number="6.2" class="anchored" data-anchor-id="ip-weighted"><span class="header-section-number">6.2</span> IP weighted</h2>
-<div class="cell" data-fig.asp="0.618" data-hash="causal-survival_cache/html/ip-kaplan-meier_85a419d357d534eec27f7e9d08987b37">
+<div class="cell" data-fig.asp="0.618" data-hash="causal-survival_cache/html/ip-kaplan-meier_68f3cc5560c52353b979edd5b54e019b">
 <div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># we re-use weights from earlier</span></span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>npfit <span class="ot">&lt;-</span> <span class="fu">survfit</span>(<span class="fu">Surv</span>(survtime, death) <span class="sc">~</span> qsmk, <span class="at">weights =</span> d<span class="sc">$</span>sw.a, <span class="at">data=</span>d)</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>npfit <span class="ot">&lt;-</span> <span class="fu">survfit</span>(<span class="fu">Surv</span>(survtime, event) <span class="sc">~</span> qsmk, <span class="at">weights =</span> d<span class="sc">$</span>sw.a, <span class="at">data=</span>d)</span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="co"># create plot</span></span>
 <span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>npplot <span class="ot">&lt;-</span> <span class="fu">ggsurvplot</span>(npfit, <span class="at">data =</span> nhefs, <span class="at">xlab=</span><span class="st">"Months of follow-up"</span>,</span>
@@ -612,6 +623,214 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <p><img src="causal-survival_files/figure-html/ip-kaplan-meier-1.png" class="img-fluid" width="768"></p>
 </div>
 </div>
+</section>
+</section>
+<section id="sub-group-analysis" class="level1" data-number="7">
+<h1 data-number="7"><span class="header-section-number">7</span> Sub-group analysis</h1>
+<section id="g-computation-1" class="level2" data-number="7.1">
+<h2 data-number="7.1" class="anchored" data-anchor-id="g-computation-1"><span class="header-section-number">7.1</span> G-computation</h2>
+<p>Let’s say we’re interested in assessing whether the effect of <code>qsmk</code> differs by sex.</p>
+<div class="cell" data-hash="causal-survival_cache/html/sub-gcomp_6fad90ffd4ed6d09daf29437d4a4ac04">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># set-up data frame -- easier for converting to bootstrapping later</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>d <span class="ot">&lt;-</span> nhefs.surv</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>sample <span class="ot">&lt;-</span> nhefs</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>tmax <span class="ot">&lt;-</span> <span class="fu">max</span>(d<span class="sc">$</span>time, <span class="at">na.rm=</span>T) <span class="sc">+</span> <span class="dv">1</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a><span class="co"># covariate-adjusted logistic regression</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a><span class="co"># only new thing is that we include an interaction term for qsmk*sex</span></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>mod <span class="ot">&lt;-</span> <span class="fu">glm</span>(event<span class="sc">==</span><span class="dv">0</span> <span class="sc">~</span> qsmk <span class="sc">+</span> <span class="fu">I</span>(qsmk<span class="sc">*</span>sex) <span class="sc">+</span> <span class="fu">I</span>(qsmk<span class="sc">*</span>time) <span class="sc">+</span> <span class="fu">I</span>(qsmk<span class="sc">*</span>timesq)</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>           <span class="sc">+</span> time <span class="sc">+</span> timesq <span class="sc">+</span> sex <span class="sc">+</span> race <span class="sc">+</span> age <span class="sc">+</span> <span class="fu">I</span>(age<span class="sc">*</span>age)</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>           <span class="sc">+</span> <span class="fu">as.factor</span>(education) <span class="sc">+</span> smokeintensity </span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>           <span class="sc">+</span> <span class="fu">I</span>(smokeintensity<span class="sc">*</span>smokeintensity) <span class="sc">+</span> smkintensity82_71 </span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>           <span class="sc">+</span> smokeyrs <span class="sc">+</span> <span class="fu">I</span>(smokeyrs<span class="sc">*</span>smokeyrs) <span class="sc">+</span> <span class="fu">as.factor</span>(exercise) </span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>           <span class="sc">+</span> <span class="fu">as.factor</span>(active) <span class="sc">+</span> wt71 <span class="sc">+</span> <span class="fu">I</span>(wt71<span class="sc">*</span>wt71), </span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>           <span class="at">family=</span><span class="fu">binomial</span>(), <span class="at">data=</span>d)</span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a><span class="co"># creation of dataset with all time points for </span></span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a><span class="co"># each individual under each treatment level.</span></span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a><span class="co"># predictions are obtained for the full sample,</span></span>
+<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a><span class="co"># i.e. post-stratification to the sample of interest.</span></span>
+<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a>qsmk0 <span class="ot">&lt;-</span> <span class="fu">expandRows</span>(sample, <span class="at">count=</span>tmax, <span class="at">count.is.col=</span>F) </span>
+<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a>qsmk0<span class="sc">$</span>time <span class="ot">&lt;-</span> <span class="fu">rep</span>(<span class="fu">seq</span>(<span class="dv">0</span>, tmax<span class="dv">-1</span>), <span class="fu">nrow</span>(sample))</span>
+<span id="cb13-23"><a href="#cb13-23" aria-hidden="true" tabindex="-1"></a>qsmk0<span class="sc">$</span>timesq <span class="ot">&lt;-</span> qsmk0<span class="sc">$</span>time<span class="sc">^</span><span class="dv">2</span></span>
+<span id="cb13-24"><a href="#cb13-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-25"><a href="#cb13-25" aria-hidden="true" tabindex="-1"></a>qsmk1 <span class="ot">&lt;-</span> qsmk0</span>
+<span id="cb13-26"><a href="#cb13-26" aria-hidden="true" tabindex="-1"></a>qsmk1<span class="sc">$</span>qsmk <span class="ot">&lt;-</span> <span class="dv">1</span></span>
+<span id="cb13-27"><a href="#cb13-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-28"><a href="#cb13-28" aria-hidden="true" tabindex="-1"></a><span class="co"># qsmk = 0, sex = 0</span></span>
+<span id="cb13-29"><a href="#cb13-29" aria-hidden="true" tabindex="-1"></a>q0s0 <span class="ot">&lt;-</span> qsmk0</span>
+<span id="cb13-30"><a href="#cb13-30" aria-hidden="true" tabindex="-1"></a>q0s0<span class="sc">$</span>sex <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb13-31"><a href="#cb13-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-32"><a href="#cb13-32" aria-hidden="true" tabindex="-1"></a><span class="co"># qsmk = 0, sex = 1</span></span>
+<span id="cb13-33"><a href="#cb13-33" aria-hidden="true" tabindex="-1"></a>q0s1 <span class="ot">&lt;-</span> qsmk0</span>
+<span id="cb13-34"><a href="#cb13-34" aria-hidden="true" tabindex="-1"></a>q0s1<span class="sc">$</span>sex <span class="ot">&lt;-</span> <span class="dv">1</span></span>
+<span id="cb13-35"><a href="#cb13-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-36"><a href="#cb13-36" aria-hidden="true" tabindex="-1"></a><span class="co"># qsmk = 1, sex = 0</span></span>
+<span id="cb13-37"><a href="#cb13-37" aria-hidden="true" tabindex="-1"></a>q1s0 <span class="ot">&lt;-</span> qsmk1</span>
+<span id="cb13-38"><a href="#cb13-38" aria-hidden="true" tabindex="-1"></a>q1s0<span class="sc">$</span>sex <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb13-39"><a href="#cb13-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-40"><a href="#cb13-40" aria-hidden="true" tabindex="-1"></a><span class="co"># qsmk = 1, sex = 1</span></span>
+<span id="cb13-41"><a href="#cb13-41" aria-hidden="true" tabindex="-1"></a>q1s1 <span class="ot">&lt;-</span> qsmk1</span>
+<span id="cb13-42"><a href="#cb13-42" aria-hidden="true" tabindex="-1"></a>q1s1<span class="sc">$</span>sex <span class="ot">&lt;-</span> <span class="dv">1</span></span>
+<span id="cb13-43"><a href="#cb13-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-44"><a href="#cb13-44" aria-hidden="true" tabindex="-1"></a><span class="co"># predicted probabilities for each strata and condition</span></span>
+<span id="cb13-45"><a href="#cb13-45" aria-hidden="true" tabindex="-1"></a>q0s0<span class="sc">$</span>p.noevent0 <span class="ot">&lt;-</span> <span class="fu">predict</span>(mod, q0s0, <span class="at">type=</span><span class="st">"response"</span>)</span>
+<span id="cb13-46"><a href="#cb13-46" aria-hidden="true" tabindex="-1"></a>q0s1<span class="sc">$</span>p.noevent0 <span class="ot">&lt;-</span> <span class="fu">predict</span>(mod, q0s1, <span class="at">type=</span><span class="st">"response"</span>)</span>
+<span id="cb13-47"><a href="#cb13-47" aria-hidden="true" tabindex="-1"></a>q1s0<span class="sc">$</span>p.noevent0 <span class="ot">&lt;-</span> <span class="fu">predict</span>(mod, q1s0, <span class="at">type=</span><span class="st">"response"</span>)</span>
+<span id="cb13-48"><a href="#cb13-48" aria-hidden="true" tabindex="-1"></a>q1s1<span class="sc">$</span>p.noevent0 <span class="ot">&lt;-</span> <span class="fu">predict</span>(mod, q1s1, <span class="at">type=</span><span class="st">"response"</span>)</span>
+<span id="cb13-49"><a href="#cb13-49" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-50"><a href="#cb13-50" aria-hidden="true" tabindex="-1"></a><span class="co"># computation of survival for each person-month</span></span>
+<span id="cb13-51"><a href="#cb13-51" aria-hidden="true" tabindex="-1"></a>q0s0.surv <span class="ot">&lt;-</span> q0s0 <span class="sc">|&gt;</span> <span class="fu">group_by</span>(seqn) <span class="sc">|&gt;</span> <span class="fu">mutate</span>(<span class="at">surv =</span> <span class="fu">cumprod</span>(p.noevent0))</span>
+<span id="cb13-52"><a href="#cb13-52" aria-hidden="true" tabindex="-1"></a>q0s1.surv <span class="ot">&lt;-</span> q0s1 <span class="sc">|&gt;</span> <span class="fu">group_by</span>(seqn) <span class="sc">|&gt;</span> <span class="fu">mutate</span>(<span class="at">surv =</span> <span class="fu">cumprod</span>(p.noevent0))</span>
+<span id="cb13-53"><a href="#cb13-53" aria-hidden="true" tabindex="-1"></a>q1s0.surv <span class="ot">&lt;-</span> q1s0 <span class="sc">|&gt;</span> <span class="fu">group_by</span>(seqn) <span class="sc">|&gt;</span> <span class="fu">mutate</span>(<span class="at">surv =</span> <span class="fu">cumprod</span>(p.noevent0))</span>
+<span id="cb13-54"><a href="#cb13-54" aria-hidden="true" tabindex="-1"></a>q1s1.surv <span class="ot">&lt;-</span> q1s1 <span class="sc">|&gt;</span> <span class="fu">group_by</span>(seqn) <span class="sc">|&gt;</span> <span class="fu">mutate</span>(<span class="at">surv =</span> <span class="fu">cumprod</span>(p.noevent0))</span>
+<span id="cb13-55"><a href="#cb13-55" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-56"><a href="#cb13-56" aria-hidden="true" tabindex="-1"></a><span class="co"># marginalize</span></span>
+<span id="cb13-57"><a href="#cb13-57" aria-hidden="true" tabindex="-1"></a>surv00 <span class="ot">&lt;-</span></span>
+<span id="cb13-58"><a href="#cb13-58" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aggregate</span>(q0s0.surv,</span>
+<span id="cb13-59"><a href="#cb13-59" aria-hidden="true" tabindex="-1"></a>            <span class="at">by =</span> <span class="fu">list</span>(q0s0.surv<span class="sc">$</span>time),</span>
+<span id="cb13-60"><a href="#cb13-60" aria-hidden="true" tabindex="-1"></a>            <span class="at">FUN =</span> mean)[<span class="fu">c</span>(<span class="st">"qsmk"</span>, <span class="st">"time"</span>, <span class="st">"surv"</span>)]</span>
+<span id="cb13-61"><a href="#cb13-61" aria-hidden="true" tabindex="-1"></a>surv01 <span class="ot">&lt;-</span></span>
+<span id="cb13-62"><a href="#cb13-62" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aggregate</span>(q0s1.surv,</span>
+<span id="cb13-63"><a href="#cb13-63" aria-hidden="true" tabindex="-1"></a>            <span class="at">by =</span> <span class="fu">list</span>(q0s1.surv<span class="sc">$</span>time),</span>
+<span id="cb13-64"><a href="#cb13-64" aria-hidden="true" tabindex="-1"></a>            <span class="at">FUN =</span> mean)[<span class="fu">c</span>(<span class="st">"qsmk"</span>, <span class="st">"time"</span>, <span class="st">"surv"</span>)]</span>
+<span id="cb13-65"><a href="#cb13-65" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-66"><a href="#cb13-66" aria-hidden="true" tabindex="-1"></a>surv10 <span class="ot">&lt;-</span></span>
+<span id="cb13-67"><a href="#cb13-67" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aggregate</span>(q1s0.surv,</span>
+<span id="cb13-68"><a href="#cb13-68" aria-hidden="true" tabindex="-1"></a>            <span class="at">by =</span> <span class="fu">list</span>(q1s0.surv<span class="sc">$</span>time),</span>
+<span id="cb13-69"><a href="#cb13-69" aria-hidden="true" tabindex="-1"></a>            <span class="at">FUN =</span> mean)[<span class="fu">c</span>(<span class="st">"qsmk"</span>, <span class="st">"time"</span>, <span class="st">"surv"</span>)]</span>
+<span id="cb13-70"><a href="#cb13-70" aria-hidden="true" tabindex="-1"></a>surv11 <span class="ot">&lt;-</span></span>
+<span id="cb13-71"><a href="#cb13-71" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aggregate</span>(q1s1.surv,</span>
+<span id="cb13-72"><a href="#cb13-72" aria-hidden="true" tabindex="-1"></a>            <span class="at">by =</span> <span class="fu">list</span>(q1s1.surv<span class="sc">$</span>time),</span>
+<span id="cb13-73"><a href="#cb13-73" aria-hidden="true" tabindex="-1"></a>            <span class="at">FUN =</span> mean)[<span class="fu">c</span>(<span class="st">"qsmk"</span>, <span class="st">"time"</span>, <span class="st">"surv"</span>)]</span>
+<span id="cb13-74"><a href="#cb13-74" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-75"><a href="#cb13-75" aria-hidden="true" tabindex="-1"></a><span class="co"># data wrangle for plotting</span></span>
+<span id="cb13-76"><a href="#cb13-76" aria-hidden="true" tabindex="-1"></a>subgroup_surv <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb13-77"><a href="#cb13-77" aria-hidden="true" tabindex="-1"></a>  <span class="at">time =</span> surv00<span class="sc">$</span>time,</span>
+<span id="cb13-78"><a href="#cb13-78" aria-hidden="true" tabindex="-1"></a>  <span class="at">surv00 =</span> surv00<span class="sc">$</span>surv,</span>
+<span id="cb13-79"><a href="#cb13-79" aria-hidden="true" tabindex="-1"></a>  <span class="at">surv01 =</span> surv01<span class="sc">$</span>surv,</span>
+<span id="cb13-80"><a href="#cb13-80" aria-hidden="true" tabindex="-1"></a>  <span class="at">surv10 =</span> surv10<span class="sc">$</span>surv,</span>
+<span id="cb13-81"><a href="#cb13-81" aria-hidden="true" tabindex="-1"></a>  <span class="at">surv11 =</span> surv11<span class="sc">$</span>surv</span>
+<span id="cb13-82"><a href="#cb13-82" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-fig.asp="0.618" data-hash="causal-survival_cache/html/sub-gcomp-plot_54980ec759473af4023e7983e8729fa5">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(subgroup_surv, <span class="fu">aes</span>(<span class="at">x=</span>time, <span class="at">y=</span>surv)) <span class="sc">+</span> </span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="fu">aes</span>(<span class="at">y =</span> surv00, <span class="at">colour =</span> <span class="st">"1"</span>)) <span class="sc">+</span> </span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="fu">aes</span>(<span class="at">y =</span> surv01, <span class="at">colour =</span> <span class="st">"2"</span>)) <span class="sc">+</span> </span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="fu">aes</span>(<span class="at">y =</span> surv10, <span class="at">colour =</span> <span class="st">"3"</span>)) <span class="sc">+</span> </span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="fu">aes</span>(<span class="at">y =</span> surv11, <span class="at">colour =</span> <span class="st">"4"</span>)) <span class="sc">+</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_continuous</span>(<span class="at">limits =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">120</span>), <span class="at">breaks=</span><span class="fu">seq</span>(<span class="dv">0</span>,<span class="dv">120</span>,<span class="dv">12</span>)) <span class="sc">+</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_y_continuous</span>(<span class="at">limits=</span><span class="fu">c</span>(<span class="fl">0.6</span>, <span class="dv">1</span>), <span class="at">breaks=</span><span class="fu">seq</span>(<span class="fl">0.6</span>, <span class="dv">1</span>, <span class="fl">0.2</span>)) <span class="sc">+</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">"Months"</span>) <span class="sc">+</span> </span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ylab</span>(<span class="st">"Survival"</span>) <span class="sc">+</span> </span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggtitle</span>(<span class="st">"Subgroup logistic polynomial model (g-computation)"</span>) <span class="sc">+</span> </span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">colour=</span><span class="st">"A:"</span>) <span class="sc">+</span></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_hue</span>(<span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"qsmk=0, sex=0"</span>, <span class="st">"qsmk=0, sex=1"</span>,</span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>                             <span class="st">"qsmk=1, sex=0"</span>, <span class="st">"qsmk=1, sex=1"</span>)) <span class="sc">+</span></span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>() <span class="sc">+</span> </span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position=</span><span class="st">"bottom"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="causal-survival_files/figure-html/sub-gcomp-plot-1.png" class="img-fluid" width="768"></p>
+</div>
+</div>
+</section>
+<section id="kaplan-meier-1" class="level2" data-number="7.2">
+<h2 data-number="7.2" class="anchored" data-anchor-id="kaplan-meier-1"><span class="header-section-number">7.2</span> Kaplan-Meier</h2>
+<p>Let’s compare our g-computation results with IP weighted Kaplan-Meier. Now, for subgroup analysis with IPTW, there are a few subtleties. Hernan and Robins (2020:165-166) writes:</p>
+<blockquote class="blockquote">
+<p>Marginal structural models do not include covariates when the target parameter is the average causal effect in the population. However, one may include covariates — which may be non-confounders — in a marginal structural model to assess effect modification. the effect estimates. In most settings, the vector of covariates <span class="math inline">\(L\)</span> should include <span class="math inline">\(V\)</span>. Even when <span class="math inline">\(V\)</span> and <span class="math inline">\(A\)</span> are independent given the other components of <span class="math inline">\(L\)</span> and <span class="math inline">\(V\)</span> is not needed to ensure exchangeability, including <span class="math inline">\(V\)</span> in <span class="math inline">\(L\)</span> will generally increase the efficiency with which the parameters of the marginal structural model are estimated.</p>
+</blockquote>
+<p>They continue:</p>
+<blockquote class="blockquote">
+<p>Because we are considering a model for the effect of treatment within levels of <span class="math inline">\(V\)</span>, we now have the choice to use either <span class="math inline">\(f[A]\)</span> or <span class="math inline">\(f[A|V]\)</span> in the numerator of the stabilized weights. IP weighting based on the stabilized weights <span class="math inline">\(SW^A(V) = \frac{f[A|V]} {f[A|L]}\)</span> generally results in narrower confidence intervals around the effect estimates. Some intuition for the generally increased statistical efficiency of <span class="math inline">\(SW^A (V)\)</span> is that the variance of the weights <span class="math inline">\(SW^A(V)\)</span> is less than that of the weights <span class="math inline">\(SW^A\)</span>. We estimate <span class="math inline">\(SW^A (V)\)</span> using the same approach as for <span class="math inline">\(SW^A\)</span>, except that we add the covariate <span class="math inline">\(V\)</span> to the logistic model for the numerator of the weights.</p>
+</blockquote>
+<p>We’ll try both approaches – they give identical results in our case, perhaps due to the non-parametric nature of the Kaplan-Meier estimator?</p>
+<section id="stabilized-weights-without-v" class="level3">
+<h3 class="anchored" data-anchor-id="stabilized-weights-without-v">Stabilized weights without <span class="math inline">\(V\)</span></h3>
+<div class="cell" data-fig.asp="0.618" data-hash="causal-survival_cache/html/sub-kaplan-meier_be6afafd3a578cc9a36b702e0838caa3">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># we re-use weights from earlier</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>nhefs<span class="sc">$</span>event <span class="ot">&lt;-</span> nhefs<span class="sc">$</span>death</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>nhefs<span class="sc">$</span>id <span class="ot">&lt;-</span> nhefs<span class="sc">$</span>seqn</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>d <span class="ot">&lt;-</span> nhefs</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a><span class="co"># estimation of denominator of ip weights -- nothing new here</span></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>p.denom <span class="ot">&lt;-</span> <span class="fu">glm</span>(qsmk <span class="sc">~</span> <span class="fu">as.factor</span>(sex) <span class="sc">+</span> race <span class="sc">+</span> age <span class="sc">+</span> <span class="fu">I</span>(age<span class="sc">*</span>age) <span class="sc">+</span> <span class="fu">as.factor</span>(education)</span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>               <span class="sc">+</span> smokeintensity <span class="sc">+</span> <span class="fu">I</span>(smokeintensity<span class="sc">*</span>smokeintensity)</span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>               <span class="sc">+</span> smokeyrs <span class="sc">+</span> <span class="fu">I</span>(smokeyrs<span class="sc">*</span>smokeyrs) <span class="sc">+</span> <span class="fu">as.factor</span>(exercise)</span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>               <span class="sc">+</span> <span class="fu">as.factor</span>(active) <span class="sc">+</span> wt71 <span class="sc">+</span> <span class="fu">I</span>(wt71<span class="sc">*</span>wt71), <span class="at">family=</span><span class="fu">binomial</span>(), <span class="at">data=</span>d)</span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>d<span class="sc">$</span>pd.qsmk <span class="ot">&lt;-</span> <span class="fu">predict</span>(p.denom, d, <span class="at">type=</span><span class="st">"response"</span>)</span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a><span class="co"># estimation of numerator of ip weights -- nothing new here</span></span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>p.num <span class="ot">&lt;-</span> <span class="fu">glm</span>(qsmk <span class="sc">~</span> <span class="dv">1</span>, <span class="at">data=</span>d, <span class="at">family=</span><span class="fu">binomial</span>())</span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a>d<span class="sc">$</span>pn.qsmk <span class="ot">&lt;-</span> <span class="fu">predict</span>(p.num, d, <span class="at">type=</span><span class="st">"response"</span>)</span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a><span class="co"># computation of estimated weights</span></span>
+<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a>d<span class="sc">$</span>sw.a <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(d<span class="sc">$</span>qsmk<span class="sc">==</span><span class="dv">1</span>, d<span class="sc">$</span>pn.qsmk<span class="sc">/</span>d<span class="sc">$</span>pd.qsmk,</span>
+<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a>                 (<span class="dv">1</span><span class="sc">-</span>d<span class="sc">$</span>pn.qsmk)<span class="sc">/</span>(<span class="dv">1</span><span class="sc">-</span>d<span class="sc">$</span>pd.qsmk))</span>
+<span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a><span class="co"># only new thing is that we add sex to the weighted model</span></span>
+<span id="cb15-23"><a href="#cb15-23" aria-hidden="true" tabindex="-1"></a>npfit <span class="ot">&lt;-</span> <span class="fu">survfit</span>(<span class="fu">Surv</span>(survtime, event) <span class="sc">~</span> qsmk <span class="sc">+</span> <span class="fu">as.factor</span>(sex) <span class="sc">+</span> <span class="fu">I</span>(qsmk<span class="sc">*</span>sex), <span class="at">weights =</span> d<span class="sc">$</span>sw.a, <span class="at">data=</span>d)</span>
+<span id="cb15-24"><a href="#cb15-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-25"><a href="#cb15-25" aria-hidden="true" tabindex="-1"></a><span class="co"># create plot</span></span>
+<span id="cb15-26"><a href="#cb15-26" aria-hidden="true" tabindex="-1"></a>npplot <span class="ot">&lt;-</span> <span class="fu">ggsurvplot</span>(npfit, <span class="at">data =</span> nhefs, <span class="at">xlab=</span><span class="st">"Months of follow-up"</span>,</span>
+<span id="cb15-27"><a href="#cb15-27" aria-hidden="true" tabindex="-1"></a>           <span class="at">ylab=</span><span class="st">"Survival probability"</span>,</span>
+<span id="cb15-28"><a href="#cb15-28" aria-hidden="true" tabindex="-1"></a>           <span class="at">main=</span><span class="st">"Product-Limit Survival Estimates"</span>, <span class="at">conf.int =</span> <span class="cn">TRUE</span>) </span>
+<span id="cb15-29"><a href="#cb15-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-30"><a href="#cb15-30" aria-hidden="true" tabindex="-1"></a><span class="co"># extract plot</span></span>
+<span id="cb15-31"><a href="#cb15-31" aria-hidden="true" tabindex="-1"></a>npplot<span class="sc">$</span>plot <span class="sc">+</span> <span class="fu">scale_x_continuous</span>(<span class="at">limits =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">120</span>), <span class="at">breaks=</span><span class="fu">seq</span>(<span class="dv">0</span>,<span class="dv">120</span>,<span class="dv">12</span>)) <span class="sc">+</span></span>
+<span id="cb15-32"><a href="#cb15-32" aria-hidden="true" tabindex="-1"></a>           <span class="fu">scale_y_continuous</span>(<span class="at">limits=</span><span class="fu">c</span>(<span class="fl">0.6</span>, <span class="dv">1</span>), <span class="at">breaks=</span><span class="fu">seq</span>(<span class="fl">0.6</span>, <span class="dv">1</span>, <span class="fl">0.2</span>))  <span class="sc">+</span> </span>
+<span id="cb15-33"><a href="#cb15-33" aria-hidden="true" tabindex="-1"></a>           <span class="fu">theme</span>(<span class="at">legend.position=</span><span class="st">"bottom"</span>) <span class="sc">+</span> </span>
+<span id="cb15-34"><a href="#cb15-34" aria-hidden="true" tabindex="-1"></a>           <span class="fu">ggtitle</span>(<span class="st">"Subgroup Kaplan-Meier (IPTW without V)"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="causal-survival_files/figure-html/sub-kaplan-meier-1.png" class="img-fluid" width="768"></p>
+</div>
+</div>
+</section>
+<section id="stabilized-weights-with-v" class="level3">
+<h3 class="anchored" data-anchor-id="stabilized-weights-with-v">Stabilized weights with <span class="math inline">\(V\)</span></h3>
+<div class="cell" data-fig.asp="0.618" data-hash="causal-survival_cache/html/sub-kaplan-meier-wL_850ff74ce5ba05ad5bca66ffeb3d8d57">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># we compute new weights</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>nhefs<span class="sc">$</span>event <span class="ot">&lt;-</span> nhefs<span class="sc">$</span>death</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>nhefs<span class="sc">$</span>id <span class="ot">&lt;-</span> nhefs<span class="sc">$</span>seqn</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>d <span class="ot">&lt;-</span> nhefs</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a><span class="co"># estimation of denominator of ip weights</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>p.denom <span class="ot">&lt;-</span> <span class="fu">glm</span>(qsmk <span class="sc">~</span> <span class="fu">as.factor</span>(sex) <span class="sc">+</span> race <span class="sc">+</span> age <span class="sc">+</span> <span class="fu">I</span>(age<span class="sc">*</span>age) <span class="sc">+</span> <span class="fu">as.factor</span>(education)</span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>               <span class="sc">+</span> smokeintensity <span class="sc">+</span> <span class="fu">I</span>(smokeintensity<span class="sc">*</span>smokeintensity)</span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>               <span class="sc">+</span> smokeyrs <span class="sc">+</span> <span class="fu">I</span>(smokeyrs<span class="sc">*</span>smokeyrs) <span class="sc">+</span> <span class="fu">as.factor</span>(exercise)</span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>               <span class="sc">+</span> <span class="fu">as.factor</span>(active) <span class="sc">+</span> wt71 <span class="sc">+</span> <span class="fu">I</span>(wt71<span class="sc">*</span>wt71), <span class="at">family=</span><span class="fu">binomial</span>(), <span class="at">data=</span>d)</span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>d<span class="sc">$</span>pd.qsmk <span class="ot">&lt;-</span> <span class="fu">predict</span>(p.denom, d, <span class="at">type=</span><span class="st">"response"</span>)</span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a><span class="co"># estimation of numerator of ip weights</span></span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a><span class="co"># new thing is that we add sex to the numerator model</span></span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>p.num <span class="ot">&lt;-</span> <span class="fu">glm</span>(qsmk <span class="sc">~</span> <span class="fu">as.factor</span>(sex), <span class="at">data=</span>d, <span class="at">family=</span><span class="fu">binomial</span>())</span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>d<span class="sc">$</span>pn.qsmk <span class="ot">&lt;-</span> <span class="fu">predict</span>(p.num, d, <span class="at">type=</span><span class="st">"response"</span>)</span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a><span class="co"># computation of estimated weights</span></span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a>d<span class="sc">$</span>sw.aV <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(d<span class="sc">$</span>qsmk<span class="sc">==</span><span class="dv">1</span>, d<span class="sc">$</span>pn.qsmk<span class="sc">/</span>d<span class="sc">$</span>pd.qsmk,</span>
+<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a>                 (<span class="dv">1</span><span class="sc">-</span>d<span class="sc">$</span>pn.qsmk)<span class="sc">/</span>(<span class="dv">1</span><span class="sc">-</span>d<span class="sc">$</span>pd.qsmk))</span>
+<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a><span class="co"># IP weighted Kaplan-Meier</span></span>
+<span id="cb16-24"><a href="#cb16-24" aria-hidden="true" tabindex="-1"></a>npfit_V <span class="ot">&lt;-</span> <span class="fu">survfit</span>(<span class="fu">Surv</span>(survtime, event) <span class="sc">~</span> qsmk <span class="sc">+</span> sex <span class="sc">+</span> <span class="fu">I</span>(qsmk<span class="sc">*</span>sex), <span class="at">weights =</span> d<span class="sc">$</span>sw.aV, <span class="at">data=</span>d)</span>
+<span id="cb16-25"><a href="#cb16-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-26"><a href="#cb16-26" aria-hidden="true" tabindex="-1"></a><span class="co"># create plot</span></span>
+<span id="cb16-27"><a href="#cb16-27" aria-hidden="true" tabindex="-1"></a>npVplot <span class="ot">&lt;-</span> <span class="fu">ggsurvplot</span>(npfit_V, <span class="at">data =</span> nhefs, <span class="at">xlab=</span><span class="st">"Months of follow-up"</span>,</span>
+<span id="cb16-28"><a href="#cb16-28" aria-hidden="true" tabindex="-1"></a>           <span class="at">ylab=</span><span class="st">"Survival probability"</span>,</span>
+<span id="cb16-29"><a href="#cb16-29" aria-hidden="true" tabindex="-1"></a>           <span class="at">main=</span><span class="st">"Product-Limit Survival Estimates"</span>, <span class="at">conf.int =</span> <span class="cn">TRUE</span>) </span>
+<span id="cb16-30"><a href="#cb16-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-31"><a href="#cb16-31" aria-hidden="true" tabindex="-1"></a><span class="co"># extract plot</span></span>
+<span id="cb16-32"><a href="#cb16-32" aria-hidden="true" tabindex="-1"></a>npVplot<span class="sc">$</span>plot <span class="sc">+</span> <span class="fu">scale_x_continuous</span>(<span class="at">limits =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">120</span>), <span class="at">breaks=</span><span class="fu">seq</span>(<span class="dv">0</span>,<span class="dv">120</span>,<span class="dv">12</span>)) <span class="sc">+</span></span>
+<span id="cb16-33"><a href="#cb16-33" aria-hidden="true" tabindex="-1"></a>           <span class="fu">scale_y_continuous</span>(<span class="at">limits=</span><span class="fu">c</span>(<span class="fl">0.6</span>, <span class="dv">1</span>), <span class="at">breaks=</span><span class="fu">seq</span>(<span class="fl">0.6</span>, <span class="dv">1</span>, <span class="fl">0.2</span>))  <span class="sc">+</span> </span>
+<span id="cb16-34"><a href="#cb16-34" aria-hidden="true" tabindex="-1"></a>           <span class="fu">theme</span>(<span class="at">legend.position=</span><span class="st">"bottom"</span>) <span class="sc">+</span> </span>
+<span id="cb16-35"><a href="#cb16-35" aria-hidden="true" tabindex="-1"></a>           <span class="fu">ggtitle</span>(<span class="st">"Subgroup Kaplan-Meier (IPTW with V)"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="causal-survival_files/figure-html/sub-kaplan-meier-wL-1.png" class="img-fluid" width="768"></p>
+</div>
+</div>
+</section>
 </section>
 </section>
 
