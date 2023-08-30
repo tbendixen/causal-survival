@@ -579,7 +579,7 @@ ggplot(subgroup_surv, aes(x=time, y=surv)) +
 
 ## Kaplan-Meier
 
-Let's compare our g-computation results with IP weighted Kaplan-Meier. Now, for subgroup analysis with IPTW, there are a few subtleties. Hernan and Robins (2020:165-166) writes:
+Let's compare our g-computation results with IP weighted Kaplan-Meier. Now, for subgroup analysis with IPTW, there are a few subtleties. Hernan and Robins (2020:165-166) write:
 
 >Marginal structural models do not include covariates when the target parameter is the average causal effect in the population. However, one may include covariates --- which may be non-confounders --- in a marginal structural model to assess effect modification. the effect estimates. In most settings, the vector of covariates $L$ should include $V$. Even when $V$ and $A$ are independent given the other components of $L$ and $V$ is not needed to ensure exchangeability, including $V$ in $L$ will generally increase the efficiency with which the parameters of the marginal structural model are estimated.
 
