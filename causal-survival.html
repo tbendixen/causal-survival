@@ -122,6 +122,11 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   <li><a href="#logistic-regression-1" id="toc-logistic-regression-1" class="nav-link" data-scroll-target="#logistic-regression-1"><span class="toc-section-number">5.1</span>  Logistic regression</a></li>
   <li><a href="#cox-regression-1" id="toc-cox-regression-1" class="nav-link" data-scroll-target="#cox-regression-1"><span class="toc-section-number">5.2</span>  Cox regression</a></li>
   </ul></li>
+  <li><a href="#kaplan-meier" id="toc-kaplan-meier" class="nav-link" data-scroll-target="#kaplan-meier"><span class="toc-section-number">6</span>  Kaplan-Meier</a>
+  <ul class="collapse">
+  <li><a href="#unadjusted" id="toc-unadjusted" class="nav-link" data-scroll-target="#unadjusted"><span class="toc-section-number">6.1</span>  Unadjusted</a></li>
+  <li><a href="#ip-weighted" id="toc-ip-weighted" class="nav-link" data-scroll-target="#ip-weighted"><span class="toc-section-number">6.2</span>  IP weighted</a></li>
+  </ul></li>
   </ul>
 </nav>
 </div>
@@ -155,11 +160,11 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <p>In this notebook, we demonstrate various flavors of non-, semi- and parametric survival analysis from a causal, potential outcomes approach in <code>R</code>. We mostly follow Hernan &amp; Robins (2020).</p>
 <p>Specifically, we’ll cover:</p>
 <ul>
-<li>G-computation with logistic polynomial regression [DONE]</li>
-<li>G-computation with Cox proportional hazards model [DONE - needs bootstrapping]</li>
-<li>Inverse probability of treatment weighting in logistic regression [DONE]</li>
-<li>Inverse probability of treatment weighting in Cox regression</li>
-<li>Inverse probability of treatment weighting in Kaplan-Meier</li>
+<li>G-computation with logistic polynomial regression <strong>[DONE]</strong></li>
+<li>G-computation with Cox proportional hazards model <strong>[DONE - needs bootstrapping]</strong></li>
+<li>Inverse probability of treatment weighting in logistic regression <strong>[DONE]</strong></li>
+<li>Inverse probability of treatment weighting in Cox proportional hazards model <strong>[DONE - needs bootstrapping]</strong></li>
+<li>Inverse probability of treatment weighting in Kaplan-Meier <strong>[DONE]</strong></li>
 <li>Sub-group analysis with g-computation</li>
 </ul>
 <p>The dataset is <code>nhefs</code> containing data from the National Health and Nutrition Examination Survey Data I Epidemiologic Follow-up Study.</p>
@@ -503,7 +508,9 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </section>
 <section id="cox-regression-1" class="level2" data-number="5.2">
 <h2 data-number="5.2" class="anchored" data-anchor-id="cox-regression-1"><span class="header-section-number">5.2</span> Cox regression</h2>
-<p>NB: This gives a slightly different result from the other approaches – namely, that there’s no notable difference between <code>qsmk = 1</code> and <code>qsmk = 0</code> when balancing the groups with IP weights. I’ve tried to debug the code but without success. We can check that the post-processing code is working as intended by deleting the <code>weights</code> argument from the Cox model; then, we see a clear difference between the two groups.</p>
+<p>NB: This gives a slightly different result from the other approaches – namely, that there’s no notable difference between <code>qsmk = 1</code> and <code>qsmk = 0</code> when balancing the groups with IP weights.</p>
+<p>I’ve tried to debug the code but without success. We can check that the post-processing code is working as intended by deleting the <code>weights</code> argument from the Cox model; then, we see a clear difference between the two groups.</p>
+<p>This could indicate that, when the hazard is constrained to be proportional, we find little evidence of a difference between the two groups. This would be sort of consistent with the IP weighted Kaplan-Meier below.</p>
 <div class="cell" data-hash="causal-survival_cache/html/iptw-cox_6cbc03d9c339902a37af9a53591ca519">
 <div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>nhefs<span class="sc">$</span>event <span class="ot">&lt;-</span> nhefs<span class="sc">$</span>death</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>nhefs<span class="sc">$</span>id <span class="ot">&lt;-</span> nhefs<span class="sc">$</span>seqn</span>
@@ -558,6 +565,51 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme</span>(<span class="at">legend.position=</span><span class="st">"bottom"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <p><img src="causal-survival_files/figure-html/iptw-cox-plot-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+</section>
+</section>
+<section id="kaplan-meier" class="level1" data-number="6">
+<h1 data-number="6"><span class="header-section-number">6</span> Kaplan-Meier</h1>
+<section id="unadjusted" class="level2" data-number="6.1">
+<h2 data-number="6.1" class="anchored" data-anchor-id="unadjusted"><span class="header-section-number">6.1</span> Unadjusted</h2>
+<div class="cell" data-fig.asp="0.618" data-hash="causal-survival_cache/html/unadj-kaplan-meier_8cf6d726d2c91ec61b5ce07b1f211a65">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># we re-use weights from earlier</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>npfit <span class="ot">&lt;-</span> <span class="fu">survfit</span>(<span class="fu">Surv</span>(survtime, death) <span class="sc">~</span> qsmk, <span class="at">data=</span>nhefs)</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="co"># create plot</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>npplot <span class="ot">&lt;-</span> <span class="fu">ggsurvplot</span>(npfit, <span class="at">data =</span> nhefs, <span class="at">xlab=</span><span class="st">"Months of follow-up"</span>,</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>           <span class="at">ylab=</span><span class="st">"Survival probability"</span>,</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>           <span class="at">main=</span><span class="st">"Product-Limit Survival Estimates"</span>, <span class="at">conf.int =</span> <span class="cn">TRUE</span>) </span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a><span class="co"># extract plot</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>npplot<span class="sc">$</span>plot <span class="sc">+</span> <span class="fu">scale_x_continuous</span>(<span class="at">limits =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">120</span>), <span class="at">breaks=</span><span class="fu">seq</span>(<span class="dv">0</span>,<span class="dv">120</span>,<span class="dv">12</span>)) <span class="sc">+</span></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>           <span class="fu">scale_y_continuous</span>(<span class="at">limits=</span><span class="fu">c</span>(<span class="fl">0.6</span>, <span class="dv">1</span>), <span class="at">breaks=</span><span class="fu">seq</span>(<span class="fl">0.6</span>, <span class="dv">1</span>, <span class="fl">0.2</span>))  <span class="sc">+</span> </span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>           <span class="fu">theme</span>(<span class="at">legend.position=</span><span class="st">"bottom"</span>) <span class="sc">+</span> </span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>           <span class="fu">ggtitle</span>(<span class="st">"Kaplan-Meier (unadjusted)"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="causal-survival_files/figure-html/unadj-kaplan-meier-1.png" class="img-fluid" width="768"></p>
+</div>
+</div>
+</section>
+<section id="ip-weighted" class="level2" data-number="6.2">
+<h2 data-number="6.2" class="anchored" data-anchor-id="ip-weighted"><span class="header-section-number">6.2</span> IP weighted</h2>
+<div class="cell" data-fig.asp="0.618" data-hash="causal-survival_cache/html/ip-kaplan-meier_85a419d357d534eec27f7e9d08987b37">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># we re-use weights from earlier</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>npfit <span class="ot">&lt;-</span> <span class="fu">survfit</span>(<span class="fu">Surv</span>(survtime, death) <span class="sc">~</span> qsmk, <span class="at">weights =</span> d<span class="sc">$</span>sw.a, <span class="at">data=</span>d)</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="co"># create plot</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>npplot <span class="ot">&lt;-</span> <span class="fu">ggsurvplot</span>(npfit, <span class="at">data =</span> nhefs, <span class="at">xlab=</span><span class="st">"Months of follow-up"</span>,</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>           <span class="at">ylab=</span><span class="st">"Survival probability"</span>,</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>           <span class="at">main=</span><span class="st">"Product-Limit Survival Estimates"</span>, <span class="at">conf.int =</span> <span class="cn">TRUE</span>) </span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a><span class="co"># extract plot</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>npplot<span class="sc">$</span>plot <span class="sc">+</span> <span class="fu">scale_x_continuous</span>(<span class="at">limits =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">120</span>), <span class="at">breaks=</span><span class="fu">seq</span>(<span class="dv">0</span>,<span class="dv">120</span>,<span class="dv">12</span>)) <span class="sc">+</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>           <span class="fu">scale_y_continuous</span>(<span class="at">limits=</span><span class="fu">c</span>(<span class="fl">0.6</span>, <span class="dv">1</span>), <span class="at">breaks=</span><span class="fu">seq</span>(<span class="fl">0.6</span>, <span class="dv">1</span>, <span class="fl">0.2</span>))  <span class="sc">+</span> </span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>           <span class="fu">theme</span>(<span class="at">legend.position=</span><span class="st">"bottom"</span>) <span class="sc">+</span> </span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>           <span class="fu">ggtitle</span>(<span class="st">"Kaplan-Meier (IPTW)"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="causal-survival_files/figure-html/ip-kaplan-meier-1.png" class="img-fluid" width="768"></p>
 </div>
 </div>
 </section>
