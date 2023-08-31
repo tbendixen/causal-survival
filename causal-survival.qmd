@@ -669,3 +669,131 @@ npVplot$plot + scale_x_continuous(limits = c(0, 120), breaks=seq(0,120,12)) +
            ggtitle("Subgroup Kaplan-Meier (IPTW with V)")
 
 ```
+
+## Cox regression
+
+We can also run IP weighted subgroup analysis with Cox regression to assess whether this yields another result than the Kaplan-Meier estimate. As it turns out, in these data and models, it appears to make no difference whether we use $SW^A$ or $SW^A (V)$. 
+
+### Stabilized weights without $V$
+
+```{r subgroup-cox-sw}
+nhefs$event <- nhefs$death
+nhefs$id <- nhefs$seqn
+
+d <- nhefs
+
+# estimation of denominator of ip weights
+p.denom <- glm(qsmk ~ sex + race + age + I(age*age) + as.factor(education)
+               + smokeintensity + I(smokeintensity*smokeintensity)
+               + smokeyrs + I(smokeyrs*smokeyrs) + as.factor(exercise)
+               + as.factor(active) + wt71 + I(wt71*wt71), family=binomial(), data=d)
+d$pd.qsmk <- predict(p.denom, d, type="response")
+
+# estimation of numerator of ip weights
+p.num <- glm(qsmk ~ 1, data=d, family=binomial())
+d$pn.qsmk <- predict(p.num, d, type="response")
+
+# computation of estimated weights
+d$sw.a <- ifelse(d$qsmk==1, d$pn.qsmk/d$pd.qsmk,
+                 (1-d$pn.qsmk)/(1-d$pd.qsmk))
+
+# fit of weighted Cox model
+mod <- coxph(Surv(survtime, event) ~ qsmk*sex, weights = d$sw.a, data = d)
+
+# wrangle for plotting
+ipw.qsmk00 <- data.frame(qsmk=0,sex=0)
+ipw.qsmk01 <- data.frame(qsmk=0,sex=1)
+ipw.qsmk10 <- data.frame(qsmk=1,sex=0)
+ipw.qsmk11 <- data.frame(qsmk=1,sex=1)
+
+iptw_fit_qsmk00 <- survfit(mod, newdata = ipw.qsmk00)
+iptw_fit_qsmk01 <- survfit(mod, newdata = ipw.qsmk01)
+iptw_fit_qsmk10 <- survfit(mod, newdata = ipw.qsmk01)
+iptw_fit_qsmk11 <- survfit(mod, newdata = ipw.qsmk11)
+
+subgroup_iptw_surv <- data.frame(time = iptw_fit_qsmk0$time,
+                        surv00 = iptw_fit_qsmk00$surv,
+                        surv01 = iptw_fit_qsmk01$surv,
+                        surv10 = iptw_fit_qsmk10$surv,
+                        surv11 = iptw_fit_qsmk11$surv)
+```
+
+```{r subgroup-cox-sw-plot}
+ggplot(subgroup_iptw_surv, aes(x=time, y=surv)) + 
+  geom_line(aes(y = surv00, colour = "1")) + 
+  geom_line(aes(y = surv01, colour = "2")) + 
+  geom_line(aes(y = surv10, colour = "3")) + 
+  geom_line(aes(y = surv11, colour = "4")) +
+  scale_x_continuous(limits = c(0, 120), breaks=seq(0,120,12)) +
+  scale_y_continuous(limits=c(0.6, 1), breaks=seq(0.6, 1, 0.2)) +
+  xlab("Months") + 
+  ylab("Survival") + 
+  ggtitle("Subgroup Cox proportional hazards model (IPTW without V)") + 
+  labs(colour="A:") +
+  scale_color_hue(labels = c("qsmk=0, sex=0", "qsmk=0, sex=1",
+                             "qsmk=1, sex=0", "qsmk=1, sex=1")) +
+  theme_bw() + 
+  theme(legend.position="bottom")
+```
+
+### Stabilized weights with $V$
+
+```{r subgroup-cox-swv}
+nhefs$event <- nhefs$death
+nhefs$id <- nhefs$seqn
+
+d <- nhefs
+
+# estimation of denominator of ip weights
+p.denom <- glm(qsmk ~ sex + race + age + I(age*age) + as.factor(education)
+               + smokeintensity + I(smokeintensity*smokeintensity)
+               + smokeyrs + I(smokeyrs*smokeyrs) + as.factor(exercise)
+               + as.factor(active) + wt71 + I(wt71*wt71), family=binomial(), data=d)
+d$pd.qsmk <- predict(p.denom, d, type="response")
+
+# estimation of numerator of ip weights
+p.num <- glm(qsmk ~ 1, data=d, family=binomial())
+d$pn.qsmk <- predict(p.num, d, type="response")
+
+# computation of estimated weights
+d$sw.aV <- ifelse(d$qsmk==1, d$pn.qsmk/d$pd.qsmk,
+                 (1-d$pn.qsmk)/(1-d$pd.qsmk))
+
+# fit of weighted Cox model
+mod <- coxph(Surv(survtime, event) ~ qsmk*sex, weights = d$sw.aV, data = d)
+
+# wrangle for plotting
+ipw.qsmk00 <- data.frame(qsmk=0,sex=0)
+ipw.qsmk01 <- data.frame(qsmk=0,sex=1)
+ipw.qsmk10 <- data.frame(qsmk=1,sex=0)
+ipw.qsmk11 <- data.frame(qsmk=1,sex=1)
+
+iptw_fit_qsmk00 <- survfit(mod, newdata = ipw.qsmk00)
+iptw_fit_qsmk01 <- survfit(mod, newdata = ipw.qsmk01)
+iptw_fit_qsmk10 <- survfit(mod, newdata = ipw.qsmk01)
+iptw_fit_qsmk11 <- survfit(mod, newdata = ipw.qsmk11)
+
+subgroup_iptw_surv <- data.frame(time = iptw_fit_qsmk0$time,
+                        surv00 = iptw_fit_qsmk00$surv,
+                        surv01 = iptw_fit_qsmk01$surv,
+                        surv10 = iptw_fit_qsmk10$surv,
+                        surv11 = iptw_fit_qsmk11$surv)
+```
+
+```{r subgroup-cox-swV-plot}
+ggplot(subgroup_iptw_surv, aes(x=time, y=surv)) + 
+  geom_line(aes(y = surv00, colour = "1")) + 
+  geom_line(aes(y = surv01, colour = "2")) + 
+  geom_line(aes(y = surv10, colour = "3")) + 
+  geom_line(aes(y = surv11, colour = "4")) +
+  scale_x_continuous(limits = c(0, 120), breaks=seq(0,120,12)) +
+  scale_y_continuous(limits=c(0.6, 1), breaks=seq(0.6, 1, 0.2)) +
+  xlab("Months") + 
+  ylab("Survival") + 
+  ggtitle("Subgroup Cox proportional hazards model (IPTW with V)") + 
+  labs(colour="A:") +
+  scale_color_hue(labels = c("qsmk=0, sex=0", "qsmk=0, sex=1",
+                             "qsmk=1, sex=0", "qsmk=1, sex=1")) +
+  theme_bw() + 
+  theme(legend.position="bottom")
+```
