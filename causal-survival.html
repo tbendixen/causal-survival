@@ -842,7 +842,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <p>We can also run IP weighted subgroup analysis with Cox regression to assess whether this yields another result than the Kaplan-Meier estimate. As it turns out, in these data and models, it appears to make no difference whether we use <span class="math inline">\(SW^A\)</span> or <span class="math inline">\(SW^A (V)\)</span>.</p>
 <section id="stabilized-weights-without-v-1" class="level3">
 <h3 class="anchored" data-anchor-id="stabilized-weights-without-v-1">Stabilized weights without <span class="math inline">\(V\)</span></h3>
-<div class="cell" data-hash="causal-survival_cache/html/subgroup-cox-sw_46f19dfe3403172550251a9e23b12722">
+<div class="cell" data-hash="causal-survival_cache/html/subgroup-cox-sw_c97ffa13d7669594a09ce4bcebd0ebc6">
 <div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>nhefs<span class="sc">$</span>event <span class="ot">&lt;-</span> nhefs<span class="sc">$</span>death</span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>nhefs<span class="sc">$</span>id <span class="ot">&lt;-</span> nhefs<span class="sc">$</span>seqn</span>
 <span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -874,16 +874,16 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb17-29"><a href="#cb17-29" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb17-30"><a href="#cb17-30" aria-hidden="true" tabindex="-1"></a>iptw_fit_qsmk00 <span class="ot">&lt;-</span> <span class="fu">survfit</span>(mod, <span class="at">newdata =</span> ipw.qsmk00)</span>
 <span id="cb17-31"><a href="#cb17-31" aria-hidden="true" tabindex="-1"></a>iptw_fit_qsmk01 <span class="ot">&lt;-</span> <span class="fu">survfit</span>(mod, <span class="at">newdata =</span> ipw.qsmk01)</span>
-<span id="cb17-32"><a href="#cb17-32" aria-hidden="true" tabindex="-1"></a>iptw_fit_qsmk10 <span class="ot">&lt;-</span> <span class="fu">survfit</span>(mod, <span class="at">newdata =</span> ipw.qsmk01)</span>
+<span id="cb17-32"><a href="#cb17-32" aria-hidden="true" tabindex="-1"></a>iptw_fit_qsmk10 <span class="ot">&lt;-</span> <span class="fu">survfit</span>(mod, <span class="at">newdata =</span> ipw.qsmk10)</span>
 <span id="cb17-33"><a href="#cb17-33" aria-hidden="true" tabindex="-1"></a>iptw_fit_qsmk11 <span class="ot">&lt;-</span> <span class="fu">survfit</span>(mod, <span class="at">newdata =</span> ipw.qsmk11)</span>
 <span id="cb17-34"><a href="#cb17-34" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-35"><a href="#cb17-35" aria-hidden="true" tabindex="-1"></a>subgroup_iptw_surv <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">time =</span> iptw_fit_qsmk0<span class="sc">$</span>time,</span>
+<span id="cb17-35"><a href="#cb17-35" aria-hidden="true" tabindex="-1"></a>subgroup_iptw_surv <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">time =</span> iptw_fit_qsmk00<span class="sc">$</span>time,</span>
 <span id="cb17-36"><a href="#cb17-36" aria-hidden="true" tabindex="-1"></a>                        <span class="at">surv00 =</span> iptw_fit_qsmk00<span class="sc">$</span>surv,</span>
 <span id="cb17-37"><a href="#cb17-37" aria-hidden="true" tabindex="-1"></a>                        <span class="at">surv01 =</span> iptw_fit_qsmk01<span class="sc">$</span>surv,</span>
 <span id="cb17-38"><a href="#cb17-38" aria-hidden="true" tabindex="-1"></a>                        <span class="at">surv10 =</span> iptw_fit_qsmk10<span class="sc">$</span>surv,</span>
 <span id="cb17-39"><a href="#cb17-39" aria-hidden="true" tabindex="-1"></a>                        <span class="at">surv11 =</span> iptw_fit_qsmk11<span class="sc">$</span>surv)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div class="cell" data-hash="causal-survival_cache/html/subgroup-cox-sw-plot_f48588454453109b79096f54adff0da0">
+<div class="cell" data-hash="causal-survival_cache/html/subgroup-cox-sw-plot_e4478d246d24c8c7d1395ce7631a993a">
 <div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(subgroup_iptw_surv, <span class="fu">aes</span>(<span class="at">x=</span>time, <span class="at">y=</span>surv)) <span class="sc">+</span> </span>
 <span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="fu">aes</span>(<span class="at">y =</span> surv00, <span class="at">colour =</span> <span class="st">"1"</span>)) <span class="sc">+</span> </span>
 <span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="fu">aes</span>(<span class="at">y =</span> surv01, <span class="at">colour =</span> <span class="st">"2"</span>)) <span class="sc">+</span> </span>
@@ -906,7 +906,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </section>
 <section id="stabilized-weights-with-v-1" class="level3">
 <h3 class="anchored" data-anchor-id="stabilized-weights-with-v-1">Stabilized weights with <span class="math inline">\(V\)</span></h3>
-<div class="cell" data-hash="causal-survival_cache/html/subgroup-cox-swv_7b56ac1271346bad825eb2a5a4d93aed">
+<div class="cell" data-hash="causal-survival_cache/html/subgroup-cox-swv_9b32ee4668000380213b5d74a215eae3">
 <div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>nhefs<span class="sc">$</span>event <span class="ot">&lt;-</span> nhefs<span class="sc">$</span>death</span>
 <span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>nhefs<span class="sc">$</span>id <span class="ot">&lt;-</span> nhefs<span class="sc">$</span>seqn</span>
 <span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -938,16 +938,16 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb19-29"><a href="#cb19-29" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb19-30"><a href="#cb19-30" aria-hidden="true" tabindex="-1"></a>iptw_fit_qsmk00 <span class="ot">&lt;-</span> <span class="fu">survfit</span>(mod, <span class="at">newdata =</span> ipw.qsmk00)</span>
 <span id="cb19-31"><a href="#cb19-31" aria-hidden="true" tabindex="-1"></a>iptw_fit_qsmk01 <span class="ot">&lt;-</span> <span class="fu">survfit</span>(mod, <span class="at">newdata =</span> ipw.qsmk01)</span>
-<span id="cb19-32"><a href="#cb19-32" aria-hidden="true" tabindex="-1"></a>iptw_fit_qsmk10 <span class="ot">&lt;-</span> <span class="fu">survfit</span>(mod, <span class="at">newdata =</span> ipw.qsmk01)</span>
+<span id="cb19-32"><a href="#cb19-32" aria-hidden="true" tabindex="-1"></a>iptw_fit_qsmk10 <span class="ot">&lt;-</span> <span class="fu">survfit</span>(mod, <span class="at">newdata =</span> ipw.qsmk10)</span>
 <span id="cb19-33"><a href="#cb19-33" aria-hidden="true" tabindex="-1"></a>iptw_fit_qsmk11 <span class="ot">&lt;-</span> <span class="fu">survfit</span>(mod, <span class="at">newdata =</span> ipw.qsmk11)</span>
 <span id="cb19-34"><a href="#cb19-34" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-35"><a href="#cb19-35" aria-hidden="true" tabindex="-1"></a>subgroup_iptw_surv <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">time =</span> iptw_fit_qsmk0<span class="sc">$</span>time,</span>
+<span id="cb19-35"><a href="#cb19-35" aria-hidden="true" tabindex="-1"></a>subgroup_iptw_surv <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">time =</span> iptw_fit_qsmk00<span class="sc">$</span>time,</span>
 <span id="cb19-36"><a href="#cb19-36" aria-hidden="true" tabindex="-1"></a>                        <span class="at">surv00 =</span> iptw_fit_qsmk00<span class="sc">$</span>surv,</span>
 <span id="cb19-37"><a href="#cb19-37" aria-hidden="true" tabindex="-1"></a>                        <span class="at">surv01 =</span> iptw_fit_qsmk01<span class="sc">$</span>surv,</span>
 <span id="cb19-38"><a href="#cb19-38" aria-hidden="true" tabindex="-1"></a>                        <span class="at">surv10 =</span> iptw_fit_qsmk10<span class="sc">$</span>surv,</span>
 <span id="cb19-39"><a href="#cb19-39" aria-hidden="true" tabindex="-1"></a>                        <span class="at">surv11 =</span> iptw_fit_qsmk11<span class="sc">$</span>surv)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div class="cell" data-hash="causal-survival_cache/html/subgroup-cox-swV-plot_c44ca200b531756b0b3281e954707f90">
+<div class="cell" data-hash="causal-survival_cache/html/subgroup-cox-swV-plot_a737b7e3ae22c2921b42223464208457">
 <div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(subgroup_iptw_surv, <span class="fu">aes</span>(<span class="at">x=</span>time, <span class="at">y=</span>surv)) <span class="sc">+</span> </span>
 <span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="fu">aes</span>(<span class="at">y =</span> surv00, <span class="at">colour =</span> <span class="st">"1"</span>)) <span class="sc">+</span> </span>
 <span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="fu">aes</span>(<span class="at">y =</span> surv01, <span class="at">colour =</span> <span class="st">"2"</span>)) <span class="sc">+</span> </span>
