@@ -27,12 +27,12 @@ In this notebook, we demonstrate various flavors of non-, semi- and parametric s
 
 Specifically, we'll cover:
 
--   G-computation with logistic polynomial regression 
--   G-computation with Cox proportional hazards model [NB: needs bootstrapping]
+-   G-computation with logistic polynomial regression
+-   G-computation with Cox proportional hazards model \[NB: needs bootstrapping\]
 -   Inverse probability of treatment weighting in logistic regression
--   Inverse probability of treatment weighting in Cox proportional hazards model [NB: needs bootstrapping]
+-   Inverse probability of treatment weighting in Cox proportional hazards model \[NB: needs bootstrapping\]
 -   Inverse probability of treatment weighting in Kaplan-Meier
--   Sub-group analysis with g-computation and logistic polynomial regression [NB: needs bootstrapping]
+-   Sub-group analysis with g-computation and logistic polynomial regression \[NB: needs bootstrapping\]
 -   Sub-group analysis with IP weighted Kaplan-Meier
 
 The dataset is `nhefs` containing data from the National Health and Nutrition Examination Survey Data I Epidemiologic Follow-up Study.
@@ -177,7 +177,8 @@ contrast_plot <-
   ggplot(boot_samples, aes(x=time, y=(survdiff)*100)) + 
   stat_lineribbon(fill = "grey", alpha = 0.5, .width=.95) +
   scale_x_continuous(limits = c(0, 120), breaks=seq(0,120,20)) +
-  xlab("Months of follow-up") + 
+  xlab("Months of follow-up") +
+  geom_hline(aes(yintercept = 0), linetype = 'dotted', alpha = 0.9) + 
   ylab("Difference in %") + 
   ggtitle("Percentage difference\nin survival") + 
   labs(colour="A:") +
@@ -190,6 +191,12 @@ survival_plot + annotation_custom(grob = ggplotGrob(contrast_plot),
                                            ymin = 0.6, ymax = 0.8)
 
 ```
+
+## Summary
+
+It's useful to compare these -- and subsequent -- results to those obtained by Hernan and Robins (2020). They write (p. 231):
+
+> In our example, the survival curve under treatment was lower than the curve under no treatment during the entire follow-up, but the maximum difference never exceeded $−2.0\%$ ($95%$ confidence interval from $−5.6\%$ to $1.8\%$). The 120- month survival estimates were $80.4\%$ under smoking cessation and $80.6\%$ under no smoking cessation; difference $0.2\%$ ($95\%$ confidence interval from $−4.6\%$ to $4.1\%$). That is, after adjustment for the covariates $L$ via standardization, we found little evidence of an effect of smoking cessation on mortality at any time during the follow-up. Note that the survival curves estimated via IP weighting (previous section) and the parametric g-formula (this section) are similar but not identical because they rely on different parametric assumptions: the IP weighted estimates require no misspecification of a model for treatment and a model for the unconditional hazards; the parametric g-formula estimates require no misspecification of a model for the conditional hazards.
 
 ## Cox regression
 
@@ -581,11 +588,11 @@ ggplot(subgroup_surv, aes(x=time, y=surv)) +
 
 Let's compare our g-computation results with IP weighted Kaplan-Meier. Now, for subgroup analysis with IPTW, there are a few subtleties. Hernan and Robins (2020:165-166) write:
 
->Marginal structural models do not include covariates when the target parameter is the average causal effect in the population. However, one may include covariates --- which may be non-confounders --- in a marginal structural model to assess effect modification. the effect estimates. In most settings, the vector of covariates $L$ should include $V$. Even when $V$ and $A$ are independent given the other components of $L$ and $V$ is not needed to ensure exchangeability, including $V$ in $L$ will generally increase the efficiency with which the parameters of the marginal structural model are estimated.
+> Marginal structural models do not include covariates when the target parameter is the average causal effect in the population. However, one may include covariates --- which may be non-confounders --- in a marginal structural model to assess effect modification. the effect estimates. In most settings, the vector of covariates $L$ should include $V$. Even when $V$ and $A$ are independent given the other components of $L$ and $V$ is not needed to ensure exchangeability, including $V$ in $L$ will generally increase the efficiency with which the parameters of the marginal structural model are estimated.
 
 They continue:
 
->Because we are considering a model for the effect of treatment within levels of $V$, we now have the choice to use either $f[A]$ or $f[A|V]$ in the numerator of the stabilized weights. IP weighting based on the stabilized weights $SW^A(V) = \frac{f[A|V]} {f[A|L]}$ generally results in narrower confidence intervals around the effect estimates. Some intuition for the generally increased statistical efficiency of $SW^A (V)$ is that the variance of the weights $SW^A(V)$ is less than that of the weights $SW^A$. We estimate $SW^A (V)$ using the same approach as for $SW^A$, except that we add the covariate $V$ to the logistic model for the numerator of the weights.
+> Because we are considering a model for the effect of treatment within levels of $V$, we now have the choice to use either $f[A]$ or $f[A|V]$ in the numerator of the stabilized weights. IP weighting based on the stabilized weights $SW^A(V) = \frac{f[A|V]} {f[A|L]}$ generally results in narrower confidence intervals around the effect estimates. Some intuition for the generally increased statistical efficiency of $SW^A (V)$ is that the variance of the weights $SW^A(V)$ is less than that of the weights $SW^A$. We estimate $SW^A (V)$ using the same approach as for $SW^A$, except that we add the covariate $V$ to the logistic model for the numerator of the weights.
 
 We'll try both approaches -- they give identical results in our case, perhaps due to the non-parametric nature of the Kaplan-Meier estimator?
 
@@ -672,7 +679,7 @@ npVplot$plot + scale_x_continuous(limits = c(0, 120), breaks=seq(0,120,12)) +
 
 ## Cox regression
 
-We can also run IP weighted subgroup analysis with Cox regression to assess whether this yields another result than the Kaplan-Meier estimate. As it turns out, in these data and models, it appears to make no difference whether we use $SW^A$ or $SW^A (V)$. 
+We can also run IP weighted subgroup analysis with Cox regression to assess whether this yields another result than the Kaplan-Meier estimate. As it turns out, in these data and models, it appears to make no difference whether we use $SW^A$ or $SW^A (V)$.
 
 ### Stabilized weights without $V$
 
