@@ -708,17 +708,17 @@ ipw.qsmk11 <- data.frame(qsmk=1,sex=1)
 
 iptw_fit_qsmk00 <- survfit(mod, newdata = ipw.qsmk00)
 iptw_fit_qsmk01 <- survfit(mod, newdata = ipw.qsmk01)
-iptw_fit_qsmk10 <- survfit(mod, newdata = ipw.qsmk01)
+iptw_fit_qsmk10 <- survfit(mod, newdata = ipw.qsmk10)
 iptw_fit_qsmk11 <- survfit(mod, newdata = ipw.qsmk11)
 
-subgroup_iptw_surv <- data.frame(time = iptw_fit_qsmk0$time,
+subgroup_iptw_surv <- data.frame(time = iptw_fit_qsmk00$time,
                         surv00 = iptw_fit_qsmk00$surv,
                         surv01 = iptw_fit_qsmk01$surv,
                         surv10 = iptw_fit_qsmk10$surv,
                         surv11 = iptw_fit_qsmk11$surv)
 ```
 
-```{r subgroup-cox-sw-plot}
+```{r subgroup-cox-sw-plot, dependson="subgroup-cox-sw"}
 ggplot(subgroup_iptw_surv, aes(x=time, y=surv)) + 
   geom_line(aes(y = surv00, colour = "1")) + 
   geom_line(aes(y = surv01, colour = "2")) + 
@@ -770,17 +770,17 @@ ipw.qsmk11 <- data.frame(qsmk=1,sex=1)
 
 iptw_fit_qsmk00 <- survfit(mod, newdata = ipw.qsmk00)
 iptw_fit_qsmk01 <- survfit(mod, newdata = ipw.qsmk01)
-iptw_fit_qsmk10 <- survfit(mod, newdata = ipw.qsmk01)
+iptw_fit_qsmk10 <- survfit(mod, newdata = ipw.qsmk10)
 iptw_fit_qsmk11 <- survfit(mod, newdata = ipw.qsmk11)
 
-subgroup_iptw_surv <- data.frame(time = iptw_fit_qsmk0$time,
+subgroup_iptw_surv <- data.frame(time = iptw_fit_qsmk00$time,
                         surv00 = iptw_fit_qsmk00$surv,
                         surv01 = iptw_fit_qsmk01$surv,
                         surv10 = iptw_fit_qsmk10$surv,
                         surv11 = iptw_fit_qsmk11$surv)
 ```
 
-```{r subgroup-cox-swV-plot}
+```{r subgroup-cox-swV-plot, dependson="subgroup-cox-swv"}
 ggplot(subgroup_iptw_surv, aes(x=time, y=surv)) + 
   geom_line(aes(y = surv00, colour = "1")) + 
   geom_line(aes(y = surv01, colour = "2")) + 
