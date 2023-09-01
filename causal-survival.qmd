@@ -752,7 +752,7 @@ p.denom <- glm(qsmk ~ sex + race + age + I(age*age) + as.factor(education)
 d$pd.qsmk <- predict(p.denom, d, type="response")
 
 # estimation of numerator of ip weights
-p.num <- glm(qsmk ~ 1, data=d, family=binomial())
+p.num <- glm(qsmk ~ sex, data=d, family=binomial())
 d$pn.qsmk <- predict(p.num, d, type="response")
 
 # computation of estimated weights
