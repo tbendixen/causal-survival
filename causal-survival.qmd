@@ -23,7 +23,7 @@ knitr::opts_chunk$set(echo = TRUE,
 
 # Introduction
 
-In this notebook, we demonstrate various flavors of non-, semi- and parametric survival analysis from a causal, potential outcomes approach in `R`. We mostly follow Hernan & Robins (2020).
+In this notebook, we demonstrate various flavors of non-, semi- and parametric survival analysis from a causal, potential outcomes approach in `R`. We mostly follow Hernán & Robins (2020).
 
 Specifically, we'll cover:
 
@@ -34,6 +34,7 @@ Specifically, we'll cover:
 -   Inverse probability of treatment weighting in Kaplan-Meier
 -   Sub-group analysis with g-computation and logistic polynomial regression \[NB: needs bootstrapping\]
 -   Sub-group analysis with IP weighted Kaplan-Meier
+-   Sub-group analysis with IP weighted Cox proportional hazards model \[NB: needs bootstrapping\]
 
 The dataset is `nhefs` containing data from the National Health and Nutrition Examination Survey Data I Epidemiologic Follow-up Study.
 
@@ -194,7 +195,7 @@ survival_plot + annotation_custom(grob = ggplotGrob(contrast_plot),
 
 ## Summary
 
-It's useful to compare these -- and subsequent -- results to those obtained by Hernan and Robins (2020). They write (p. 231):
+It's useful to take stock and compare these -- and subsequent -- results to those obtained by Hernán and Robins (2020) on the same data. They write (p. 231):
 
 > In our example, the survival curve under treatment was lower than the curve under no treatment during the entire follow-up, but the maximum difference never exceeded $−2.0\%$ ($95%$ confidence interval from $−5.6\%$ to $1.8\%$). The 120- month survival estimates were $80.4\%$ under smoking cessation and $80.6\%$ under no smoking cessation; difference $0.2\%$ ($95\%$ confidence interval from $−4.6\%$ to $4.1\%$). That is, after adjustment for the covariates $L$ via standardization, we found little evidence of an effect of smoking cessation on mortality at any time during the follow-up. Note that the survival curves estimated via IP weighting (previous section) and the parametric g-formula (this section) are similar but not identical because they rely on different parametric assumptions: the IP weighted estimates require no misspecification of a model for treatment and a model for the unconditional hazards; the parametric g-formula estimates require no misspecification of a model for the conditional hazards.
 
@@ -586,7 +587,7 @@ ggplot(subgroup_surv, aes(x=time, y=surv)) +
 
 ## Kaplan-Meier
 
-Let's compare our g-computation results with IP weighted Kaplan-Meier. Now, for subgroup analysis with IPTW, there are a few subtleties. Hernan and Robins (2020:165-166) write:
+Let's compare our g-computation results with IP weighted Kaplan-Meier. Now, for subgroup analysis with IPTW, there are a few subtleties. Hernán and Robins (2020:165-166) write:
 
 > Marginal structural models do not include covariates when the target parameter is the average causal effect in the population. However, one may include covariates --- which may be non-confounders --- in a marginal structural model to assess effect modification. the effect estimates. In most settings, the vector of covariates $L$ should include $V$. Even when $V$ and $A$ are independent given the other components of $L$ and $V$ is not needed to ensure exchangeability, including $V$ in $L$ will generally increase the efficiency with which the parameters of the marginal structural model are estimated.
 
@@ -725,7 +726,7 @@ subgroup_iptw_surv <- data.frame(time = iptw_fit_qsmk00$time,
                         surv11 = iptw_fit_qsmk11$surv)
 ```
 
-```{r subgroup-cox-sw-plot, dependson="subgroup-cox-sw"}
+```{r subgroup-cox-sw-plot, dependson="subgroup-cox-sw", fig.width=8, fig.asp=0.618}
 ggplot(subgroup_iptw_surv, aes(x=time, y=surv)) + 
   geom_line(aes(y = surv00, colour = "1")) + 
   geom_line(aes(y = surv01, colour = "2")) + 
@@ -787,7 +788,7 @@ subgroup_iptw_surv <- data.frame(time = iptw_fit_qsmk00$time,
                         surv11 = iptw_fit_qsmk11$surv)
 ```
 
-```{r subgroup-cox-swV-plot, dependson="subgroup-cox-swv"}
+```{r subgroup-cox-swV-plot, dependson="subgroup-cox-swv", fig.width=8, fig.asp=0.618}
 ggplot(subgroup_iptw_surv, aes(x=time, y=surv)) + 
   geom_line(aes(y = surv00, colour = "1")) + 
   geom_line(aes(y = surv01, colour = "2")) + 
@@ -803,4 +804,111 @@ ggplot(subgroup_iptw_surv, aes(x=time, y=surv)) +
                              "qsmk=1, sex=0", "qsmk=1, sex=1")) +
   theme_bw() + 
   theme(legend.position="bottom")
+```
+
+# Bonus: Visualizing IPTW "pseudo-population"
+
+The IPTW method is often described as achieving balance between comparison groups by creating a "pseudo-population" in which the probability of receiving either intervention is comparable (or, at least more comparable than pre-weighting). This term -- pseudo-population -- might not, however, be immediately intuitive, so here we visualize what weighting does in practice. Code from: https://www.andrewheiss.com/blog/2021/12/18/bayesian-propensity-scores-weights/#pseudo-populations
+
+Notice how the propensities in the pseudo-population (right panel, lighter colors) is re-allocated such that the two distributions are more similar: the treated are shifted left while the untreated are shifted slightly right.
+
+```{r pseudo-pop, fig.width=8, fig.asp=0.618}
+library(MetBrewer)
+library(patchwork)
+
+isfahan <- MetBrewer::met.brewer("Isfahan1")
+
+# create weights - as above
+nhefs$event <- nhefs$death
+nhefs$id <- nhefs$seqn
+
+d <- nhefs
+
+# estimation of denominator of ip weights
+p.denom <- glm(qsmk ~ sex + race + age + I(age*age) + as.factor(education)
+               + smokeintensity + I(smokeintensity*smokeintensity)
+               + smokeyrs + I(smokeyrs*smokeyrs) + as.factor(exercise)
+               + as.factor(active) + wt71 + I(wt71*wt71), family=binomial(), data=d)
+d$pd.qsmk <- predict(p.denom, d, type="response")
+
+# estimation of numerator of ip weights
+p.num <- glm(qsmk ~ 1, data=d, family=binomial())
+d$pn.qsmk <- predict(p.num, d, type="response")
+
+# computation of estimated weights
+d$sw.a <- ifelse(d$qsmk==1, d$pn.qsmk/d$pd.qsmk,
+                 (1-d$pn.qsmk)/(1-d$pd.qsmk))
+
+# unweighted
+p_unw <- ggplot() + 
+  geom_histogram(data = filter(d, qsmk == 1), 
+                 bins = 50, aes(x = pd.qsmk), 
+                 fill = isfahan[2]) + 
+  geom_histogram(data = filter(d, qsmk == 0), 
+                 bins = 50, aes(x = pd.qsmk, y = -after_stat(count)),
+                 fill = isfahan[6]) +
+  geom_hline(yintercept = 0) +
+  annotate(geom = "label", x = 0.8, y = 20, label = "Treated (actual)", 
+           fill = isfahan[2], color = "white", hjust = 1) +
+  annotate(geom = "label", x = 0.8, y = -50, label = "Untreated (actual)", 
+           fill = isfahan[6], color = "white", hjust = 1) +
+  geom_hline(yintercept = 0, color = "white", linewidth = 0.25) +
+  scale_y_continuous(label = abs) +
+  coord_cartesian(xlim = c(0.05, 1), ylim = c(-100, 40)) +
+  labs(x = "Propensity", y = "Count") + 
+  ggtitle("Pre-weighting")
+
+# weighted
+p_w <- ggplot() + 
+  geom_histogram(data = filter(d, qsmk == 1), 
+                 bins = 50, aes(x = pd.qsmk, weight = sw.a), 
+                 fill = colorspace::lighten(isfahan[2], 0.35)) + 
+  geom_histogram(data = filter(d, qsmk == 0), 
+                 bins = 50, aes(x = pd.qsmk, weight = sw.a, y = -after_stat(count)),
+                 fill = colorspace::lighten(isfahan[6], 0.35)) +
+  geom_histogram(data = filter(d, qsmk == 1), 
+                 bins = 50, aes(x = pd.qsmk), 
+                 fill = isfahan[2]) + 
+  geom_histogram(data = filter(d, qsmk == 0), 
+                 bins = 50, aes(x = pd.qsmk, y = -after_stat(count)),
+                 fill = isfahan[6]) +
+  annotate(geom = "label", x = 0.8, y = 20, label = "Treated (actual)", 
+           fill = isfahan[2], color = "white", hjust = 1) +
+  annotate(geom = "label", x = 1, y = 30, label = "Treated (IPTW pseudo-population)", 
+           fill = colorspace::lighten(isfahan[2], 0.35), color = "white", hjust = 1) +
+  annotate(geom = "label", x = 0.8, y = -50, label = "Untreated (actual)", 
+           fill = isfahan[6], color = "white", hjust = 1) +
+  annotate(geom = "label", x = 1, y = -70, label = "Untreated (IPTW pseudo-population)", 
+           fill = colorspace::lighten(isfahan[6], 0.35), color = "white", hjust = 1) +
+  geom_hline(yintercept = 0, color = "white", linewidth = 0.25) +
+  scale_y_continuous(label = abs) +
+  coord_cartesian(xlim = c(0.05, 1), ylim = c(-100, 40)) +
+  labs(x = "Propensity", y = "Count") + 
+  ggtitle("Post-weighting")
+
+p_unw + p_w
+```
+
+## Pre- and post-weighting Table 1
+We can also assess what the weights do numerically by each covariate. Here, we assess the differences pre- and post-weighting, respectively. Note that the differences in the weighted table 1 are quite a lot smaller than the unweighted.
+
+```{r pre-post-tab1}
+library("cobalt")
+
+f <- formula(qsmk ~ sex + race + age + I(age*age) + as.factor(education)
++ smokeintensity + I(smokeintensity*smokeintensity)
++ smokeyrs + I(smokeyrs*smokeyrs) + as.factor(exercise)
++ as.factor(active) + wt71 + I(wt71*wt71))
+```
+
+### Unweighted
+```{r pre-tab1, results='as-is'}
+# not weighted
+bal.tab(f, data = d)
+```
+
+### Weighted
+```{r post-tab1, results='as-is'}
+# weighted
+bal.tab(f, data = d, weights = d$sw.a, s.d.denom=)
 ```
