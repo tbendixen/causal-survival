@@ -30,7 +30,7 @@ Specifically, we'll cover:
 -   G-computation with logistic polynomial regression
 -   G-computation with Cox proportional hazards model \[NB: needs bootstrapping\]
 -   Inverse probability of treatment weighting in logistic regression
--   Inverse probability of treatment weighting in Cox proportional hazards model \[NB: needs bootstrapping\]
+-   Inverse probability of treatment weighting in Cox proportional hazards model
 -   Inverse probability of treatment weighting in Kaplan-Meier
 -   Sub-group analysis with g-computation and logistic polynomial regression \[NB: needs bootstrapping\]
 -   Sub-group analysis with IP weighted Kaplan-Meier
@@ -50,6 +50,7 @@ library(splitstackshape)
 library(survival)
 library(survminer)
 library(ggplot2)
+library(marginaleffects)
 
 nhefs <- read_excel("NHEFS.xls")
 ```
@@ -206,67 +207,70 @@ It's useful to take stock and compare these -- and subsequent -- results to thos
 nhefs$event <- nhefs$death
 nhefs$id <- nhefs$seqn
 
-# Cox model
-mod <- coxph(Surv(survtime, event) ~ qsmk + sex + race + age + age:age
+gcomp_cox <- function(formula, data, indices) {
+  
+  d <- data[indices,]
+  
+  # fit adjusted Cox model
+  mod <- coxph(formula, data = d, model = TRUE)
+  
+  # predict and marginalize
+  fit_qsmk0 <- avg_predictions(mod, newdata = transform(data, qsmk=0), 
+                               variables = list(survtime = sort(unique(data$survtime))), 
+                               vcov = FALSE, type = "survival")
+  
+  # predict and marginalize
+  fit_qsmk1 <- avg_predictions(mod, newdata = transform(data, qsmk=1), 
+                               variables = list(survtime = sort(unique(data$survtime))), 
+                               vcov = FALSE, type = "survival")
+  
+  # collect
+  fit_qsmk0$surv0 <- fit_qsmk0$estimate
+  fit_qsmk1$surv1 <- fit_qsmk1$estimate
+  
+  return(c(fit_qsmk0$surv0, fit_qsmk1$surv1))
+}
+
+# iptw Cox bootstrap
+(bootstrapped_results <- boot(data=nhefs,
+                              statistic=gcomp_cox,
+                              R=n_R,
+                              formula = Surv(survtime, event) ~ qsmk + sex + race + age + age:age
                               + as.factor(education) + smokeintensity 
                               + smokeintensity:smokeintensity + smkintensity82_71 
                               + smokeyrs + smokeyrs:smokeyrs + as.factor(exercise) 
-                              + as.factor(active) + wt71 + wt71:wt71, data = nhefs)
+                              + as.factor(active) + wt71 + wt71:wt71))
 
-# creation of datasets with all observed time points for 
-# each individual under each treatment level.
-qsmk0 <- transform(nhefs, qsmk = 0)
-qsmk1 <- transform(nhefs, qsmk = 1)
+# data wrangle for plotting
+time_seq <- sort(unique(nhefs$survtime))
+tmin <- min(time_seq)
+tmax <- length(time_seq)
 
-# predicted time to event under each treatment
-fit_qsmk0 <- survfit(mod, newdata = qsmk0)
-surv0 <- fit_qsmk0$surv |> as.data.frame()
-surv0 <- surv0 |> tidyr::pivot_longer(cols = everything(), 
-                                      names_to = "id",
-                                      values_to = "surv")
-surv0$time <- rep(fit_qsmk0$time, each = length(unique(surv0$id)))
-surv0$qsmk <- 0
-
-fit_qsmk1 <- survfit(mod, newdata = qsmk1)
-surv1 <- fit_qsmk1$surv |> as.data.frame()
-surv1 <- surv1 |> tidyr::pivot_longer(cols = everything(), 
-                                      names_to = "id",
-                                      values_to = "surv")
-surv1$time <- rep(fit_qsmk1$time, each = length(unique(surv1$id)))
-surv1$qsmk <- 1
-
-# marginalize
-surv0 <- 
-  aggregate(surv ~ time + qsmk,
-            data = surv0,
-            FUN = mean)
-
-surv1 <- 
-  aggregate(surv ~ time + qsmk,
-            data = surv1,
-            FUN = mean)
-
-# collect in dataframe
-cox_surv <- data.frame(
-  time = surv0$time,
-  surv0 = surv0$surv,
-  surv1 = surv1$surv
+# collect results in data frame
+boot_samples <- with(
+  bootstrapped_results,
+  data.frame(
+    time = rep(time_seq, each=R),
+    surv0 = c(t[,(tmin):(tmax)]),
+    surv1 = c(t[,(tmax+1):(tmax*2)]),
+    draw = rep(1:R, each=tmax))
 )
 
 ```
 
 ```{r gcomp-cox-plot, dependson="gcomp-cox", fig.align = 'center', fig.width=8, fig.asp=0.618}
-ggplot(cox_surv, aes(x=time, y=surv)) + 
-  geom_line(aes(y = surv0, colour = "1")) + 
-  geom_line(aes(y = surv1, colour = "2")) + 
-  scale_x_continuous(limits = c(0, 120), breaks=seq(0,120,12)) +
-  scale_y_continuous(limits=c(0.6, 1), breaks=seq(0.6, 1, 0.2)) +
-  xlab("Months") + 
-  ylab("Survival") + 
-  ggtitle("Cox proportional hazards model (g-computation)") + 
-  labs(colour="A:") +
-  theme_bw() + 
-  theme(legend.position="bottom")
+# survival curves
+(survival_plot <- ggplot(boot_samples, aes(x=time, y=surv)) + 
+    stat_lineribbon(aes(y = surv0, colour = "0"), fill = "grey", alpha = 0.5, .width=.95) +
+    stat_lineribbon(aes(y = surv1, colour = "1"), fill = "grey", alpha = 0.5, .width=.95) +
+    xlab("Months of follow-up") + 
+    scale_x_continuous(limits = c(0, 120), breaks=seq(0,120,12)) +
+    scale_y_continuous(limits=c(0.6, 1), breaks=seq(0.6, 1, 0.2)) +
+    ylab("Survival") + 
+    ggtitle("Cox model (G-comp with bootstrap)") + 
+    labs(colour="A:") +
+    theme_classic() + 
+    theme(legend.position="bottom"))
 
 ```
 
@@ -381,58 +385,88 @@ I've tried to debug the code but without success. We can check that the post-pro
 This could indicate that, when the hazard is constrained to be proportional, we find little evidence of a difference between the two groups. This would be sort of consistent with the IP weighted Kaplan-Meier below.
 
 ```{r iptw-cox}
+# set event and id columns
 nhefs$event <- nhefs$death
 nhefs$id <- nhefs$seqn
 
-d <- nhefs
+iptw_cox <- function(formula, data, indices) {
+  
+  d <- data[indices,]
+  
+  # estimation of denominator of ip weights
+  p.denom <- glm(formula, family=binomial(), data=d)
+  
+  d$pd.qsmk <- predict(p.denom, d, type="response")
+  
+  # estimation of numerator of ip weights
+  p.num <- glm(qsmk ~ 1, data=d, family=binomial())
+  d$pn.qsmk <- predict(p.num, d, type="response")
+  
+  # computation of estimated weights
+  d$sw.a <- ifelse(d$qsmk==1, d$pn.qsmk/d$pd.qsmk,
+                   (1-d$pn.qsmk)/(1-d$pd.qsmk))
+  
+  # fit of weighted Cox model
+  mod <- coxph(Surv(survtime, event) ~ qsmk, weights = d$sw.a, data = d, model = TRUE)
+  
+  # predict
+  iptw_fit_qsmk0 <- avg_predictions(mod, newdata = transform(data, qsmk=0), 
+                                    variables = list(survtime = sort(unique(data$survtime))), 
+                                    vcov = FALSE, # don't compute SEs with delta method
+                                    type = "survival")
+  
+  # predict
+  iptw_fit_qsmk1 <- avg_predictions(mod, newdata = transform(data, qsmk=1), 
+                                    variables = list(survtime = sort(unique(data$survtime))), 
+                                    vcov = FALSE, # don't compute SEs with delta method
+                                    type = "survival")
 
-# estimation of denominator of ip weights
-p.denom <- glm(qsmk ~ sex + race + age + I(age*age) + as.factor(education)
-               + smokeintensity + I(smokeintensity*smokeintensity)
-               + smokeyrs + I(smokeyrs*smokeyrs) + as.factor(exercise)
-               + as.factor(active) + wt71 + I(wt71*wt71), family=binomial(), data=d)
-d$pd.qsmk <- predict(p.denom, d, type="response")
+  # collect
+  iptw_fit_qsmk0$surv0 <- iptw_fit_qsmk0$estimate
+  iptw_fit_qsmk1$surv1 <- iptw_fit_qsmk1$estimate
 
-# estimation of numerator of ip weights
-p.num <- glm(qsmk ~ 1, data=d, family=binomial())
-d$pn.qsmk <- predict(p.num, d, type="response")
+  return(c(iptw_fit_qsmk0$surv0, iptw_fit_qsmk1$surv1))
+}
 
-# computation of estimated weights
-d$sw.a <- ifelse(d$qsmk==1, d$pn.qsmk/d$pd.qsmk,
-                 (1-d$pn.qsmk)/(1-d$pd.qsmk))
+# iptw Cox bootstrap
+(bootstrapped_results <- boot(data=nhefs,
+                              statistic=iptw_cox,
+                              R=n_R,
+                              formula = qsmk ~ sex + race + age + I(age * age) + as.factor(education)
+                              + smokeintensity + I(smokeintensity * smokeintensity)
+                              + smokeyrs + I(smokeyrs * smokeyrs) + as.factor(exercise)
+                              + as.factor(active) + wt71 + I(wt71 * wt71)))
 
-# fit of weighted Cox model
-mod <- coxph(Surv(survtime, event) ~ qsmk, weights = d$sw.a, data = d)
+# data wrangle for plotting
+time_seq <- sort(unique(nhefs$survtime))
+tmin <- min(time_seq)
+tmax <- length(time_seq)
 
-# wrangle for plotting
-ipw.qsmk0 <- data.frame(qsmk=c(0))
-ipw.qsmk1 <- data.frame(qsmk=c(1))
+# collect results
+boot_samples <- with(
+  bootstrapped_results,
+  data.frame(
+    time = rep(time_seq, each=R),
+    surv0 = c(t[,(tmin):(tmax)]),
+    surv1 = c(t[,(tmax+1):(tmax*2)]),
+    draw = rep(1:R, each=tmax))
+)
 
-iptw_fit_qsmk0 <- survfit(mod, newdata = ipw.qsmk0)
-iptw_fit_qsmk1 <- survfit(mod, newdata = ipw.qsmk1)
-
-iptw_surv <- data.frame(time = iptw_fit_qsmk0$time,
-                        surv0 = iptw_fit_qsmk0$surv,
-                        surv0_l = iptw_fit_qsmk0$lower,
-                        surv0_u = iptw_fit_qsmk0$upper,
-                        surv1 = iptw_fit_qsmk1$surv,
-                        surv1_l = iptw_fit_qsmk1$lower,
-                        surv1_u = iptw_fit_qsmk1$upper)
 ```
 
 ```{r iptw-cox-plot, dependson="iptw-cox", fig.width=8, fig.asp=0.618}
-# plot
-(survival_plot <- ggplot(iptw_surv, aes(x=time, y=surv)) + 
-    geom_line(aes(y = surv0, colour = "1")) + 
-    geom_line(aes(y = surv1, colour = "2")) + 
-    xlab("Months of follow-up") + 
-    scale_x_continuous(limits = c(0, 120), breaks=seq(0,120,12)) +
-    scale_y_continuous(limits=c(0.6, 1), breaks=seq(0.6, 1, 0.2)) +
-    ylab("Survival") + 
-    ggtitle("Cox proportional hazards model (IPTW)") + 
-    labs(colour="A:") +
-    theme_bw() + 
-    theme(legend.position="bottom"))
+# survival curves
+(survival_plot <- ggplot(boot_samples, aes(x=time, y=surv)) + 
+  stat_lineribbon(aes(y = surv0, colour = "0"), fill = "grey", alpha = 0.5, .width=.95) +
+  stat_lineribbon(aes(y = surv1, colour = "1"), fill = "grey", alpha = 0.5, .width=.95) +
+  xlab("Months of follow-up") + 
+  scale_x_continuous(limits = c(0, 120), breaks=seq(0,120,12)) +
+  scale_y_continuous(limits=c(0.6, 1), breaks=seq(0.6, 1, 0.2)) +
+  ylab("Survival") + 
+  ggtitle("Cox model (IPTW with bootstrap)") + 
+  labs(colour="A:") +
+  theme_classic() + 
+  theme(legend.position="bottom"))
 
 ```
 
@@ -848,9 +882,9 @@ p_unw <- ggplot() +
                  bins = 50, aes(x = pd.qsmk, y = -after_stat(count)),
                  fill = isfahan[6]) +
   geom_hline(yintercept = 0) +
-  annotate(geom = "label", x = 0.8, y = 20, label = "Treated (actual)", 
+  annotate(geom = "label", x = 0.8, y = 20, label = "Quitters (actual)", 
            fill = isfahan[2], color = "white", hjust = 1) +
-  annotate(geom = "label", x = 0.8, y = -50, label = "Untreated (actual)", 
+  annotate(geom = "label", x = 0.8, y = -50, label = "Non-quitters (actual)", 
            fill = isfahan[6], color = "white", hjust = 1) +
   geom_hline(yintercept = 0, color = "white", linewidth = 0.25) +
   scale_y_continuous(label = abs) +
@@ -872,13 +906,13 @@ p_w <- ggplot() +
   geom_histogram(data = filter(d, qsmk == 0), 
                  bins = 50, aes(x = pd.qsmk, y = -after_stat(count)),
                  fill = isfahan[6]) +
-  annotate(geom = "label", x = 0.8, y = 20, label = "Treated (actual)", 
+  annotate(geom = "label", x = 0.8, y = 20, label = "Quitters (actual)", 
            fill = isfahan[2], color = "white", hjust = 1) +
-  annotate(geom = "label", x = 1, y = 30, label = "Treated (IPTW pseudo-population)", 
+  annotate(geom = "label", x = 1, y = 30, label = "Quitters (IPTW pseudo-population)", 
            fill = colorspace::lighten(isfahan[2], 0.35), color = "white", hjust = 1) +
-  annotate(geom = "label", x = 0.8, y = -50, label = "Untreated (actual)", 
+  annotate(geom = "label", x = 0.8, y = -50, label = "Non-quitters (actual)", 
            fill = isfahan[6], color = "white", hjust = 1) +
-  annotate(geom = "label", x = 1, y = -70, label = "Untreated (IPTW pseudo-population)", 
+  annotate(geom = "label", x = 1, y = -70, label = "Non-quitters (IPTW pseudo-population)", 
            fill = colorspace::lighten(isfahan[6], 0.35), color = "white", hjust = 1) +
   geom_hline(yintercept = 0, color = "white", linewidth = 0.25) +
   scale_y_continuous(label = abs) +
