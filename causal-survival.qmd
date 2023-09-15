@@ -28,7 +28,7 @@ In this notebook, we demonstrate various flavors of non-, semi- and parametric s
 Specifically, we'll cover:
 
 -   G-computation with logistic polynomial regression
--   G-computation with Cox proportional hazards model \[NB: needs bootstrapping\]
+-   G-computation with Cox proportional hazards model
 -   Inverse probability of treatment weighting in logistic regression
 -   Inverse probability of treatment weighting in Cox proportional hazards model
 -   Inverse probability of treatment weighting in Kaplan-Meier
@@ -231,7 +231,7 @@ gcomp_cox <- function(formula, data, indices) {
   return(c(fit_qsmk0$surv0, fit_qsmk1$surv1))
 }
 
-# iptw Cox bootstrap
+# g-comp Cox bootstrap
 (bootstrapped_results <- boot(data=nhefs,
                               statistic=gcomp_cox,
                               R=n_R,
