@@ -449,7 +449,7 @@ boot_samples <- with(
     time = rep(time_seq, each=R),
     surv0 = c(t[,(tmin):(tmax)]),
     surv1 = c(t[,(tmax+1):(tmax*2)]),
-    draw = rep(1:R, each=tmax))
+    draw = rep(1:R, times=tmax))
 )
 
 ```
@@ -840,6 +840,99 @@ ggplot(subgroup_iptw_surv, aes(x=time, y=surv)) +
   theme(legend.position="bottom")
 ```
 
+# Doubly robust Cox
+
+```{r dr-iptw-cox}
+# set event and id columns
+nhefs$event <- nhefs$death
+nhefs$id <- nhefs$seqn
+
+doubly_cox <- function(formula, data, indices) {
+  
+  d <- data[indices,]
+  
+  # estimation of denominator of ip weights
+  p.denom <- glm(formula, family=binomial(), data=d)
+  
+  d$pd.qsmk <- predict(p.denom, d, type="response")
+  
+  # estimation of numerator of ip weights
+  p.num <- glm(qsmk ~ 1, data=d, family=binomial())
+  d$pn.qsmk <- predict(p.num, d, type="response")
+  
+  # computation of estimated weights
+  d$sw.a <- ifelse(d$qsmk==1, d$pn.qsmk/d$pd.qsmk,
+                   (1-d$pn.qsmk)/(1-d$pd.qsmk))
+  
+  # fit of doubly robust Cox model
+  # includes both weights and full vector of covariates
+  mod <- coxph(Surv(survtime, event) ~ qsmk + sex + race + age + I(age * age) + as.factor(education)
+                              + smokeintensity + I(smokeintensity * smokeintensity)
+                              + smokeyrs + I(smokeyrs * smokeyrs) + as.factor(exercise)
+                              + as.factor(active) + wt71 + I(wt71 * wt71), 
+               weights = d$sw.a, data = d, model = TRUE)
+  
+  # predict and marginalize
+  doubly_fit_qsmk0 <- avg_predictions(mod, newdata = transform(data, qsmk=0), 
+                                    variables = list(survtime = sort(unique(data$survtime))), 
+                                    vcov = FALSE, # don't compute SEs with delta method
+                                    type = "survival")
+  
+  # predict and marginalize
+  doubly_fit_qsmk1 <- avg_predictions(mod, newdata = transform(data, qsmk=1), 
+                                    variables = list(survtime = sort(unique(data$survtime))), 
+                                    vcov = FALSE, # don't compute SEs with delta method
+                                    type = "survival")
+
+  # collect
+  doubly_fit_qsmk0$surv0 <- doubly_fit_qsmk0$estimate
+  doubly_fit_qsmk1$surv1 <- doubly_fit_qsmk1$estimate
+
+  return(c(doubly_fit_qsmk0$surv0, doubly_fit_qsmk1$surv1))
+}
+
+# doubly robust Cox bootstrap
+(bootstrapped_results <- boot(data=nhefs,
+                              statistic=doubly_cox,
+                              R=n_R,
+                              formula = qsmk ~ sex + race + age + I(age * age) + as.factor(education)
+                              + smokeintensity + I(smokeintensity * smokeintensity)
+                              + smokeyrs + I(smokeyrs * smokeyrs) + as.factor(exercise)
+                              + as.factor(active) + wt71 + I(wt71 * wt71)))
+
+# data wrangle for plotting
+time_seq <- sort(unique(nhefs$survtime))
+tmin <- min(time_seq)
+tmax <- length(time_seq)
+
+# collect results
+boot_samples <- with(
+  bootstrapped_results,
+  data.frame(
+    time = rep(time_seq, each=R),
+    surv0 = c(t[,(tmin):(tmax)]),
+    surv1 = c(t[,(tmax+1):(tmax*2)]),
+    draw = rep(1:R, times=tmax))
+)
+
+```
+
+```{r dr-iptw-cox-plot, dependson="iptw-cox", fig.width=8, fig.asp=0.618}
+# survival curves
+(survival_plot <- ggplot(boot_samples, aes(x=time, y=surv)) + 
+  stat_lineribbon(aes(y = surv0, colour = "0"), fill = "grey", alpha = 0.5, .width=.95) +
+  stat_lineribbon(aes(y = surv1, colour = "1"), fill = "grey", alpha = 0.5, .width=.95) +
+  xlab("Months of follow-up") + 
+  scale_x_continuous(limits = c(0, 120), breaks=seq(0,120,12)) +
+  scale_y_continuous(limits=c(0.6, 1), breaks=seq(0.6, 1, 0.2)) +
+  ylab("Survival") + 
+  ggtitle("Cox model (Doubly robust with bootstrap)") + 
+  labs(colour="A:") +
+  theme_classic() + 
+  theme(legend.position="bottom"))
+
+```
+
 # Bonus: Visualizing IPTW "pseudo-population"
 
 The IPTW method is often described as achieving balance between comparison groups by creating a "pseudo-population" in which the probability of receiving either intervention is comparable (or, at least more comparable than pre-weighting). This term -- pseudo-population -- might not, however, be immediately intuitive, so here we visualize what weighting does in practice. Code from: https://www.andrewheiss.com/blog/2021/12/18/bayesian-propensity-scores-weights/#pseudo-populations
@@ -945,4 +1038,61 @@ bal.tab(f, data = d)
 ```{r post-tab1, results='as-is'}
 # weighted
 bal.tab(f, data = d, weights = d$sw.a, s.d.denom=)
+```
+
+# Schoenfeld residuals
+
+```{r sch-res}
+### Fit doubly robust Cox, as above
+nhefs$event <- nhefs$death
+nhefs$id <- nhefs$seqn
+
+d <- nhefs
+
+# estimation of denominator of ip weights
+p.denom <- glm(qsmk ~ sex + race + age + I(age * age) + as.factor(education)
+                              + smokeintensity + I(smokeintensity * smokeintensity)
+                              + smokeyrs + I(smokeyrs * smokeyrs) + as.factor(exercise)
+                              + as.factor(active) + wt71 + I(wt71 * wt71), family=binomial(), data=d)
+
+d$pd.qsmk <- predict(p.denom, d, type="response")
+
+# estimation of numerator of ip weights
+p.num <- glm(qsmk ~ 1, data=d, family=binomial())
+d$pn.qsmk <- predict(p.num, d, type="response")
+
+# computation of estimated weights
+d$sw.a <- ifelse(d$qsmk==1, d$pn.qsmk/d$pd.qsmk,
+                 (1-d$pn.qsmk)/(1-d$pd.qsmk))
+
+# fit of doubly robust Cox model
+# includes both weights and full vector of covariates
+mod <- coxph(Surv(survtime, event) ~ qsmk + sex + race + age + I(age * age) + as.factor(education)
+                            + smokeintensity + I(smokeintensity * smokeintensity)
+                            + smokeyrs + I(smokeyrs * smokeyrs) + as.factor(exercise)
+                            + as.factor(active) + wt71 + I(wt71 * wt71), 
+             weights = d$sw.a, data = d, model = TRUE)
+
+### Schoenfeld residuals
+cox.zph(mod)
+plot(cox.zph(mod))
+
+```
+
+# Restricted mean survival time
+
+```{r rmst}
+# fit weighted Kaplan-Meier; we re-use weights from earlier
+npfit <- survfit(Surv(survtime, event) ~ qsmk, weights = d$sw.a, data=d)
+
+# restricted mean survival time with standard errors from time 0 to 120
+print(npfit, print.rmean = TRUE, rmean = 120)
+
+# compute confidence intervals "manually", assuming gaussian distribution
+fit.table <- summary(npfit, print.rmean = TRUE, rmean = 120)$table |> 
+  as.data.frame()
+rmean <- fit.table["qsmk=0", "rmean"]                            # Estimated restricted mean for qsmk=0
+rmean.se <- fit.table[["se(rmean)"]]                             # Estimated standard error
+rmean + c(-1,1) * qnorm(.05/1.96, lower.tail=FALSE) * rmean.se   # 95% CI
+
 ```
